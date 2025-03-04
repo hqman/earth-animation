@@ -2,6 +2,8 @@
 
 ## Claude 3.7 Empowers UI Designers! 🚀
 
+This 3D Earth Animation [Demo ](https://3d-earth.hqman.us)
+ was made with just one image and a simple prompt. 
 My experience has been both surprising and amazing! ✨
 
 Claude 3.7 was just released recently, and its programming capabilities have improved tremendously compared to the previous generation. 
