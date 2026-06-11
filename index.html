@@ -1,885 +1,773 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive 3D Earth Visualization</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 0.7; }
-            50% { transform: scale(1.05); opacity: 1; }
-            100% { transform: scale(1); opacity: 0.7; }
-        }
-        .pulse {
-            animation: pulse 2s infinite ease-in-out;
-        }
-        .earth-controls::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #3b82f6;
-            cursor: pointer;
-            border: 2px solid white;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-        }
-        .earth-controls::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #3b82f6;
-            cursor: pointer;
-            border: 2px solid white;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-        }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Global View — Logistics Dashboard</title>
 
-        /* Mobile Responsive Styles */
-        @media (max-width: 768px) {
-            .controls-panel {
-                position: fixed !important;
-                bottom: 0 !important;
-                right: 0 !important;
-                top: auto !important;
-                left: 0 !important;
-                transform: translateY(85%);
-                transition: transform 0.3s ease-in-out;
-                border-radius: 20px 20px 0 0 !important;
-                max-height: 95vh;
-                overflow-y: auto;
-                z-index: 1000;
-            }
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { navy: "#0a0f2c", royal: "#4e6bf5", amber: "#ffc83d" },
+        fontFamily: { sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"] },
+      },
+    },
+  };
+</script>
 
-            .controls-panel.expanded {
-                transform: translateY(0);
-            }
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet" />
 
-            .controls-handle {
-                display: flex;
-                justify-content: center;
-                padding: 10px;
-                cursor: pointer;
-                border-radius: 20px 20px 0 0;
-            }
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-            .controls-handle::before {
-                content: '';
-                width: 40px;
-                height: 4px;
-                background: #4b5563;
-                border-radius: 2px;
-                margin-top: -5px;
-            }
+<style>
+  html, body { height: 100%; overflow: hidden; background: #070b22; }
+  * { -webkit-font-smoothing: antialiased; }
 
-            .info-panel {
-                display: none;
-            }
+  .bg-scene {
+    background:
+      radial-gradient(120% 90% at 50% -10%, #232f6e 0%, #141b48 38%, #0a0f2e 72%, #070b22 100%);
+  }
+  .bg-grid {
+    background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 90px 90px;
+    -webkit-mask-image: radial-gradient(90% 75% at 50% 18%, #000 0%, transparent 78%);
+            mask-image: radial-gradient(90% 75% at 50% 18%, #000 0%, transparent 78%);
+  }
 
-            .coordinates-panel {
-                bottom: auto !important;
-                top: 4rem !important;
-            }
-        }
-    </style>
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-up { opacity: 0; animation: fadeUp .9s cubic-bezier(.22,1,.36,1) forwards; }
+  .d1 { animation-delay: .15s } .d2 { animation-delay: .3s } .d3 { animation-delay: .45s }
+  .d4 { animation-delay: .6s } .d5 { animation-delay: .8s } .d6 { animation-delay: 1s }
+
+  @keyframes pulseDot { 0%,100% { box-shadow: 0 0 0 0 rgba(74,222,128,.55);} 70% { box-shadow: 0 0 0 7px rgba(74,222,128,0);} }
+  .pulse-dot { animation: pulseDot 2s ease-out infinite; }
+
+  @keyframes ringPing { 0% { transform: scale(.6); opacity:.9 } 100% { transform: scale(2.4); opacity:0 } }
+  .ring-ping { animation: ringPing 2.2s cubic-bezier(0,.4,.4,1) infinite; }
+
+  .marker { position: absolute; left: 0; top: 0; will-change: transform, opacity; transition: opacity .25s linear; pointer-events: none; }
+  .glass { background: rgba(13, 19, 51, .55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.14); }
+  .glass-light { background: rgba(255,255,255,.08); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.14); }
+
+  .panel-shadow { box-shadow: 0 -30px 80px rgba(0,0,0,.55); }
+  .vehicle-glow { box-shadow: 0 0 0 6px rgba(255,200,61,.18), 0 0 34px 6px rgba(255,200,61,.45); }
+
+  .weather-grid {
+    background-image:
+      linear-gradient(rgba(255,255,255,.16) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.16) 1px, transparent 1px);
+    background-size: 26px 26px;
+  }
+  canvas { display: block; outline: none; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: rgba(100,116,180,.35); border-radius: 99px; }
+</style>
 </head>
-<body class="bg-black h-screen flex flex-col items-center justify-center overflow-hidden">
-    <div class="relative w-full h-full">
-        <canvas id="earthCanvas" class="w-full h-full"></canvas>
-        
-        <!-- Loading Indicator -->
-        <div id="loadingIndicator" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-            <div class="text-center">
-                <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-                <p class="text-white text-lg">Loading Earth...</p>
-            </div>
+
+<body class="bg-navy font-sans">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ============================== Icons ============================== */
+const S = ({ children, size = 18, sw = 1.8, className = "" }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor"
+       strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+);
+const IGlobe   = (p) => <S {...p}><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></S>;
+const IBox     = (p) => <S {...p}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></S>;
+const IPie     = (p) => <S {...p}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></S>;
+const IUser    = (p) => <S {...p}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></S>;
+const IGear    = (p) => <S {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></S>;
+const ILogout  = (p) => <S {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></S>;
+const IBell    = (p) => <S {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></S>;
+const IMoon    = (p) => <S {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></S>;
+const ISun     = (p) => <S {...p}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></S>;
+const ISearch  = (p) => <S {...p}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></S>;
+const IPlus    = (p) => <S {...p}><path d="M12 5v14M5 12h14"/></S>;
+const IMinus   = (p) => <S {...p}><path d="M5 12h14"/></S>;
+const ICross   = (p) => <S {...p}><circle cx="12" cy="12" r="7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></S>;
+const IChevD   = (p) => <S {...p}><path d="M6 9l6 6 6-6"/></S>;
+const IChevU   = (p) => <S {...p}><path d="M18 15l-6-6-6 6"/></S>;
+const IMore    = (p) => <S {...p}><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></S>;
+const ITrend   = (p) => <S {...p}><path d="M7 17L17 7"/><path d="M9 7h8v8"/></S>;
+const ICube    = (p) => <S {...p}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></S>;
+const ILayers  = (p) => <S {...p}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></S>;
+const ISliders = (p) => <S {...p}><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/></S>;
+const ITruck   = (p) => <S {...p}><rect x="1" y="5" width="13" height="11" rx="1"/><path d="M14 9h4l3 3v4h-7z"/><circle cx="6" cy="18.5" r="1.8"/><circle cx="17.5" cy="18.5" r="1.8"/></S>;
+const IShip    = (p) => <S {...p}><path d="M5 12V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v5"/><path d="M12 5V3"/><path d="M21 13l-9-3.5L3 13c.3 2.8 1.3 5 3 7h12c1.7-2 2.7-4.2 3-7z"/></S>;
+const IPlane = ({ size = 18, className = "" }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" className={className}>
+    <path d="M22 16.21v-1.9L14 8.6V4a2 2 0 0 0-4 0v4.6l-8 5.71v1.9l8-2.6v4.99l-2.5 1.9V22l4.5-1.2 4.5 1.2v-1.9L14 18.6v-4.99l8 2.6z"/>
+  </svg>
+);
+const ISpark = ({ size = 22, className = "" }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" className={className}>
+    <path d="M12 2l1.8 5.7L19.5 9.5l-5.7 1.8L12 17l-1.8-5.7L4.5 9.5l5.7-1.8L12 2z"/>
+    <path d="M19.5 14.5l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9.9-2.6z" opacity=".85"/>
+  </svg>
+);
+
+/* ============================== Globe data ============================== */
+const R = 1;
+function latLonToVec3(lat, lon, r) {
+  const phi = (90 - lat) * Math.PI / 180;
+  const theta = (lon + 180) * Math.PI / 180;
+  return new THREE.Vector3(
+    -r * Math.sin(phi) * Math.cos(theta),
+     r * Math.cos(phi),
+     r * Math.sin(phi) * Math.sin(theta)
+  );
+}
+function arcPoints(a, b, alt = 0.22, n = 160) {
+  const va = latLonToVec3(a.lat, a.lon, 1);
+  const vb = latLonToVec3(b.lat, b.lon, 1);
+  const angle = va.angleTo(vb), sinA = Math.sin(angle);
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const p = va.clone().multiplyScalar(Math.sin((1 - t) * angle) / sinA)
+      .add(vb.clone().multiplyScalar(Math.sin(t * angle) / sinA));
+    pts.push(p.normalize().multiplyScalar(R * (1 + alt * Math.pow(Math.sin(Math.PI * t), 0.9))));
+  }
+  return pts;
+}
+
+const ROUTE = { from: { lat: 36.2, lon: -115.2 }, to: { lat: 4.6, lon: -74.1 }, alt: 0.22, split: 0.55 };
+
+/* ============================== Three.js globe ============================== */
+function useGlobe(mountRef, markerRefs, coordRef, apiRef) {
+  useEffect(() => {
+    const mount = mountRef.current;
+    const readSize = () => ({
+      W: mount.clientWidth || Math.max(320, window.innerWidth - 84),
+      H: mount.clientHeight || window.innerHeight,
+    });
+    let { W, H } = readSize();
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(W, H);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    mount.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(38, W / H, 0.1, 100);
+    camera.position.set(0, 0, 5.4);                 // intro: fly in
+
+    const globe = new THREE.Group();
+    globe.position.y = -0.18;
+    globe.scale.setScalar(1.34);
+    scene.add(globe);
+
+    /* --- Earth --- */
+    const loader = new THREE.TextureLoader();
+    loader.setCrossOrigin("anonymous");
+    const tex = (url, srgb) => {
+      const t = loader.load(url);
+      if (srgb) t.encoding = THREE.sRGBEncoding;
+      t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      return t;
+    };
+    const dayMap   = tex("https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg", true);
+    const nightMap = tex("https://unpkg.com/three-globe/example/img/earth-night.jpg", true);
+    const bumpMap  = tex("https://unpkg.com/three-globe/example/img/earth-topology.png", false);
+    const waterMap = tex("https://unpkg.com/three-globe/example/img/earth-water.png", false);
+
+    const earthMat = new THREE.MeshPhongMaterial({
+      map: dayMap,
+      color: new THREE.Color("#7d91ff"),          // bright deep-blue tint over blue marble
+      emissiveMap: nightMap,
+      emissive: new THREE.Color("#ffb45e"),       // golden city lights
+      emissiveIntensity: 1.9,
+      bumpMap, bumpScale: 0.045,
+      specularMap: waterMap,
+      specular: new THREE.Color("#2e4a8f"),
+      shininess: 22,
+    });
+    const earth = new THREE.Mesh(new THREE.SphereGeometry(R, 96, 96), earthMat);
+    globe.add(earth);
+
+    // Additive city-light layer keeps the globe readable even in the dark UI,
+    // matching the golden Black Marble look from the reference.
+    const cityLights = new THREE.Mesh(
+      new THREE.SphereGeometry(R * 1.006, 96, 96),
+      new THREE.MeshBasicMaterial({
+        map: nightMap,
+        color: new THREE.Color("#ffd08a"),
+        transparent: true,
+        opacity: 1,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
+    );
+    globe.add(cityLights);
+
+    /* --- Atmosphere (outer back-side glow) --- */
+    const atmoMat = new THREE.ShaderMaterial({
+      uniforms: {},
+      vertexShader: `varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+      fragmentShader: `varying vec3 vN; void main(){ float i = pow(0.74 - dot(vN, vec3(0.,0.,1.)), 5.0); gl_FragColor = vec4(0.27,0.47,1.0,1.0) * i * 1.35; }`,
+      blending: THREE.AdditiveBlending, side: THREE.BackSide, transparent: true, depthWrite: false,
+    });
+    scene.add(new THREE.Mesh(new THREE.SphereGeometry(R * 1.34 * 1.16, 64, 64), atmoMat))
+    scene.children[scene.children.length-1].position.y = globe.position.y;
+
+    /* --- Inner fresnel rim --- */
+    const rimMat = new THREE.ShaderMaterial({
+      vertexShader: `varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+      fragmentShader: `varying vec3 vN; void main(){ float i = pow(1.0 - abs(dot(vN, vec3(0.,0.,1.))), 3.2); gl_FragColor = vec4(0.35,0.55,1.0,1.0) * i * 0.7; }`,
+      blending: THREE.AdditiveBlending, transparent: true, depthWrite: false,
+    });
+    globe.add(new THREE.Mesh(new THREE.SphereGeometry(R * 1.004, 96, 96), rimMat));
+
+    /* --- Lights --- */
+    scene.add(new THREE.AmbientLight(0x33406e, 1.25));
+    const sun = new THREE.DirectionalLight(0xcfe0ff, 1.25);
+    sun.position.set(-2.2, 1.6, 2.4);
+    scene.add(sun);
+    const fill = new THREE.PointLight(0x4e6bf5, 0.5, 12);
+    fill.position.set(2.5, -1, 3);
+    scene.add(fill);
+
+    /* --- Stars --- */
+    const starGeo = new THREE.BufferGeometry();
+    const starPos = new Float32Array(1400 * 3);
+    for (let i = 0; i < 1400; i++) {
+      const u = Math.random() * 2 - 1;
+      const th = Math.random() * Math.PI * 2;
+      const s = Math.sqrt(1 - u * u);
+      const d = 22 + Math.random() * 36;
+      starPos.set([s * Math.cos(th) * d, u * d, s * Math.sin(th) * d], i * 3);
+    }
+    starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
+    const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xbcd0ff, size: 0.05, transparent: true, opacity: 0.7, sizeAttenuation: true }));
+    scene.add(stars);
+
+    /* --- Main route: yellow → plane → white --- */
+    const pts = arcPoints(ROUTE.from, ROUTE.to, ROUTE.alt, 180);
+    const splitIdx = Math.round(pts.length * ROUTE.split);
+    const tube = (points, color, radius) => new THREE.Mesh(
+      new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 96, radius, 8),
+      new THREE.MeshBasicMaterial({ color })
+    );
+    globe.add(tube(pts.slice(0, splitIdx + 1), 0xffc83d, 0.0052));
+    globe.add(tube(pts.slice(splitIdx), 0xffffff, 0.0042));
+    // soft glow under the yellow segment
+    const glowTube = tube(pts.slice(0, splitIdx + 1), 0xffc83d, 0.012);
+    glowTube.material.transparent = true; glowTube.material.opacity = 0.18;
+    globe.add(glowTube);
+
+    /* --- Secondary faint routes with travelling pulses --- */
+    const SECONDARY = [
+      { a: { lat: 40.7, lon: -74 },  b: { lat: 51.5, lon: -0.1 },  alt: 0.3 },
+      { a: { lat: 19.4, lon: -99.1 },b: { lat: -33.4, lon: -70.6 },alt: 0.22 },
+      { a: { lat: 4.6, lon: -74.1 }, b: { lat: -23.5, lon: -46.6 },alt: 0.16 },
+      { a: { lat: 36.2, lon: -115.2 },b:{ lat: 49.2, lon: -123.1 },alt: 0.1 },
+    ];
+    const pulses = [];
+    SECONDARY.forEach((s, i) => {
+      const p = arcPoints(s.a, s.b, s.alt, 120);
+      const t = tube(p, 0x9db4ff, 0.0022);
+      t.material.transparent = true; t.material.opacity = 0.32;
+      globe.add(t);
+      const dot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.011, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0xcfe0ff, transparent: true, opacity: 0.95 })
+      );
+      globe.add(dot);
+      pulses.push({ dot, pts: p, t: Math.random(), speed: 0.0016 + i * 0.0005 });
+    });
+
+    /* --- City marker dots on surface --- */
+    [ROUTE.from, ROUTE.to].forEach((c, i) => {
+      const d = new THREE.Mesh(
+        new THREE.SphereGeometry(0.014, 16, 16),
+        new THREE.MeshBasicMaterial({ color: i === 0 ? 0xffc83d : 0xffffff })
+      );
+      d.position.copy(latLonToVec3(c.lat, c.lon, R * 1.002));
+      globe.add(d);
+    });
+
+    /* --- HTML marker anchors (local space) --- */
+    const planePos = pts[splitIdx];
+    const anchors = {
+      usa:    latLonToVec3(ROUTE.from.lat, ROUTE.from.lon, R * 1.005),
+      col:    latLonToVec3(ROUTE.to.lat, ROUTE.to.lon, R * 1.005),
+      plane:  planePos.clone(),
+      jl748:  latLonToVec3(43, -51, R * 1.06),
+      mu131:  latLonToVec3(-9, -129, R * 1.05),
+      ml356:  latLonToVec3(-13.5, -52, R * 1.05),
+    };
+
+    /* --- Interaction state --- */
+    const st = {
+      rotY: -0.18, rotX: 0.16, tRotY: -0.18, tRotX: 0.16,
+      velY: 0, dragging: false, lastX: 0, lastY: 0, lastInteract: 0,
+      tZoom: 3.05,
+    };
+    globe.rotation.set(st.rotX, st.rotY, 0);
+
+    const el = renderer.domElement;
+    el.style.cursor = "grab";
+    const onDown = (e) => {
+      st.dragging = true; st.velY = 0;
+      st.lastX = e.clientX; st.lastY = e.clientY;
+      st.lastInteract = performance.now();
+      el.style.cursor = "grabbing";
+      el.setPointerCapture && el.setPointerCapture(e.pointerId);
+    };
+    const onMove = (e) => {
+      if (!st.dragging) return;
+      const dx = e.clientX - st.lastX, dy = e.clientY - st.lastY;
+      st.lastX = e.clientX; st.lastY = e.clientY;
+      st.tRotY += dx * 0.0052;
+      st.tRotX = THREE.MathUtils.clamp(st.tRotX + dy * 0.0032, -0.85, 0.95);
+      st.velY = dx * 0.0052;
+      st.lastInteract = performance.now();
+    };
+    const onUp = () => { st.dragging = false; el.style.cursor = "grab"; };
+    const onWheel = (e) => {
+      e.preventDefault();
+      const normalizedDelta = Math.sign(e.deltaY) * Math.min(120, Math.abs(e.deltaY));
+      st.tZoom = THREE.MathUtils.clamp(st.tZoom + normalizedDelta * 0.0065, 2.05, 22);
+      st.lastInteract = performance.now();
+    };
+    el.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    el.addEventListener("wheel", onWheel, { passive: false });
+
+    apiRef.current = {
+      zoom: (d) => { st.tZoom = THREE.MathUtils.clamp(st.tZoom + d, 2.05, 22); st.lastInteract = performance.now(); },
+      reset: () => { st.tZoom = 3.05; st.tRotY = -0.18; st.tRotX = 0.16; st.lastInteract = performance.now(); },
+    };
+
+    /* --- Render loop --- */
+    const wp = new THREE.Vector3(), nrm = new THREE.Vector3(), toCam = new THREE.Vector3();
+    const globeCenter = new THREE.Vector3();
+    let raf;
+    const animate = () => {
+      raf = requestAnimationFrame(animate);
+      const now = performance.now();
+
+      // inertia + idle auto-rotate
+      if (!st.dragging) {
+        st.tRotY += st.velY; st.velY *= 0.94;
+        if (now - st.lastInteract > 3000) st.tRotY += 0.00045;
+      }
+      st.rotY += (st.tRotY - st.rotY) * 0.12;
+      st.rotX += (st.tRotX - st.rotX) * 0.12;
+      globe.rotation.y = st.rotY;
+      globe.rotation.x = st.rotX;
+
+      camera.position.z += (st.tZoom - camera.position.z) * 0.12;
+      stars.rotation.y -= 0.00012;
+
+      pulses.forEach((p) => {
+        p.t = (p.t + p.speed) % 1;
+        p.dot.position.copy(p.pts[Math.floor(p.t * (p.pts.length - 1))]);
+        p.dot.material.opacity = 0.55 + 0.45 * Math.sin(p.t * Math.PI);
+      });
+
+      // project HTML markers
+      globe.updateMatrixWorld();
+      globe.getWorldPosition(globeCenter);
+      for (const id in anchors) {
+        const elm = markerRefs.current[id];
+        if (!elm) continue;
+        wp.copy(anchors[id]).applyMatrix4(globe.matrixWorld);
+        nrm.copy(wp).sub(globeCenter).normalize();
+        toCam.copy(camera.position).sub(wp).normalize();
+        const facing = nrm.dot(toCam);
+        const vis = THREE.MathUtils.clamp((facing - 0.04) / 0.22, 0, 1);
+        wp.project(camera);
+        const x = (wp.x * 0.5 + 0.5) * W;
+        const y = (-wp.y * 0.5 + 0.5) * H;
+        elm.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+        elm.style.opacity = vis.toFixed(2);
+      }
+
+      if (coordRef.current) {
+        const lon = (((-st.rotY * 57.29578 - 90) % 360) + 540) % 360 - 180;
+        const lat = st.rotX * 57.29578;
+        coordRef.current.x.textContent = lat.toFixed(6);
+        coordRef.current.y.textContent = lon.toFixed(6);
+      }
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    const onResize = () => {
+      ({ W, H } = readSize());
+      camera.aspect = W / H; camera.updateProjectionMatrix();
+      renderer.setSize(W, H);
+    };
+    window.addEventListener("resize", onResize);
+    requestAnimationFrame(onResize);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("wheel", onWheel);
+      renderer.dispose();
+      mount.removeChild(el);
+    };
+  }, []);
+}
+
+/* ============================== UI pieces ============================== */
+function Sidebar() {
+  return (
+    <aside className="relative z-20 w-[84px] shrink-0 h-full flex flex-col items-center border-r border-white/[.06] bg-[#0a0f2e]/60 backdrop-blur-sm">
+      <div className="h-24 flex items-center justify-center">
+        <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
+          <path d="M4 10h12l6 6-6 6H4l6-6-6-6z" fill="#ffc83d"/>
+          <path d="M16 10h6l6 6-6 6h-6l6-6-6-6z" fill="#fff" opacity=".92"/>
+        </svg>
+      </div>
+      <nav className="flex-1 flex flex-col items-center gap-3 pt-16">
+        <button className="w-12 h-12 rounded-full bg-white/[.1] border border-white/[.12] text-white flex items-center justify-center shadow-lg shadow-black/30">
+          <IGlobe size={20}/>
+        </button>
+        <button className="relative w-12 h-12 rounded-full text-slate-400 hover:text-white hover:bg-white/[.06] transition flex items-center justify-center">
+          <IBox size={20}/>
+          <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-amber"></span>
+        </button>
+        <button className="w-12 h-12 rounded-full text-slate-400 hover:text-white hover:bg-white/[.06] transition flex items-center justify-center"><IPie size={20}/></button>
+        <button className="w-12 h-12 rounded-full text-slate-400 hover:text-white hover:bg-white/[.06] transition flex items-center justify-center"><IUser size={20}/></button>
+      </nav>
+      <div className="pb-7 flex flex-col items-center gap-3">
+        <button className="w-12 h-12 rounded-full text-slate-400 hover:text-white hover:bg-white/[.06] transition flex items-center justify-center"><IGear size={20}/></button>
+        <button className="w-12 h-12 rounded-full text-slate-400 hover:text-white hover:bg-white/[.06] transition flex items-center justify-center"><ILogout size={20}/></button>
+      </div>
+    </aside>
+  );
+}
+
+function TopBar() {
+  const [dark, setDark] = useState(true);
+  return (
+    <div className="absolute top-0 inset-x-0 z-20 pointer-events-none">
+      <div className="flex items-start justify-between px-8 pt-7">
+        <button onClick={() => setDark(!dark)}
+          className="fade-up d1 pointer-events-auto flex items-center rounded-full glass-light p-1.5 gap-1">
+          <span className={`w-9 h-9 rounded-full flex items-center justify-center transition ${dark ? "bg-white text-slate-900" : "text-slate-300"}`}><IMoon size={16}/></span>
+          <span className={`w-9 h-9 rounded-full flex items-center justify-center transition ${!dark ? "bg-white text-slate-900" : "text-slate-300"}`}><ISun size={16}/></span>
+        </button>
+
+        <div className="text-center select-none">
+          <h1 className="fade-up d2 text-white font-extralight tracking-tight leading-none"
+              style={{ fontSize: "clamp(44px,4.6vw,64px)" }}>Global View</h1>
+          <div className="fade-up d3 mt-4 flex items-center justify-center gap-5 text-[13px]">
+            <span className="flex items-center gap-2 text-slate-200 font-medium tracking-[.14em]">
+              <span className="w-2 h-2 rounded-full bg-green-400 pulse-dot"></span> LIFE TRACKING
+            </span>
+            <span className="text-slate-400">153 ms</span>
+          </div>
         </div>
-        
-        <!-- Title -->
-        <div class="absolute top-4 left-1/2 transform -translate-x-1/2 text-center">
-            <h1 class="text-3xl font-bold text-white tracking-wider">EARTH VISUALIZATION</h1>
-            <p class="text-blue-400 mt-1"><span class="pulse inline-block"><i class="fas fa-satellite text-xs mr-1"></i></span> Satellite View</p>
+
+        <div className="fade-up d1 pointer-events-auto flex items-center gap-3">
+          <button className="flex items-center gap-2.5 rounded-full glass-light pl-1.5 pr-3 py-1.5 text-white hover:bg-white/[.14] transition">
+            <span className="w-8 h-8 rounded-full bg-gradient-to-br from-amber to-orange-500 flex items-center justify-center text-[13px] font-semibold text-slate-900">E</span>
+            <span className="text-[13px] font-medium">Evan H.</span>
+            <IChevD size={14} className="text-slate-300"/>
+          </button>
+          <button className="relative w-11 h-11 rounded-full bg-white text-slate-900 flex items-center justify-center hover:scale-105 transition">
+            <IBell size={17}/>
+            <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-amber border-2 border-white"></span>
+          </button>
         </div>
-        
-        <!-- Controls Panel -->
-        <div class="controls-panel absolute top-4 right-4 bg-gray-900/90 backdrop-blur-md p-5 rounded-xl text-white border border-blue-500/30 shadow-lg shadow-blue-500/20">
-            <div class="controls-handle md:hidden"></div>
-            <h2 class="text-xl mb-4 font-bold flex items-center"><i class="fas fa-sliders-h mr-2 text-blue-400"></i> Earth Controls</h2>
-            <div class="space-y-5">
-                <div>
-                    <label class="block mb-2 flex justify-between">
-                        <span><i class="fas fa-sync-alt mr-1 text-blue-400"></i> Rotation Speed</span>
-                        <span id="rotationSpeedValue" class="text-blue-400">0.5</span>
-                    </label>
-                    <input type="range" id="rotationSpeed" min="0" max="2" step="0.1" value="0.5"
-                        class="w-full bg-gray-700 rounded-lg appearance-none cursor-pointer h-2 earth-controls">
-                </div>
-                <div>
-                    <label class="block mb-2 flex justify-between">
-                        <span><i class="fas fa-cloud mr-1 text-blue-400"></i> Cloud Opacity</span>
-                        <span id="cloudOpacityValue" class="text-blue-400">0.8</span>
-                    </label>
-                    <input type="range" id="cloudOpacity" min="0" max="1" step="0.1" value="0.8"
-                        class="w-full bg-gray-700 rounded-lg appearance-none cursor-pointer h-2 earth-controls">
-                </div>
-                <div>
-                    <label class="block mb-2 flex justify-between">
-                        <span><i class="fas fa-mountain mr-1 text-blue-400"></i> Antarctica Highlight</span>
-                        <span id="antarcticaOpacityValue" class="text-blue-400">0.4</span>
-                    </label>
-                    <input type="range" id="antarcticaOpacity" min="0" max="1" step="0.1" value="0.4"
-                        class="w-full bg-gray-700 rounded-lg appearance-none cursor-pointer h-2 earth-controls">
-                </div>
-                <div class="pt-2 border-t border-gray-700">
-                    <button id="toggleRotation" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors flex items-center justify-center">
-                        <i class="fas fa-pause mr-2"></i> <span id="rotationButtonText">Pause Rotation</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Antarctica Info -->
-        <div class="info-panel absolute bottom-4 left-4 bg-gray-900/90 backdrop-blur-md p-4 rounded-xl text-white border border-blue-500/30 shadow-lg shadow-blue-500/20 max-w-xs">
-            <h3 class="text-lg font-bold text-blue-400 flex items-center">
-                <i class="fas fa-info-circle mr-2"></i> Antarctica
-            </h3>
-            <p class="text-sm mt-2 text-gray-300">
-                Earth's southernmost continent, containing the geographic South Pole. It's the fifth-largest continent, nearly twice the size of Australia.
-            </p>
-            <div class="mt-3 text-xs text-blue-300 flex items-center">
-                <i class="fas fa-temperature-low mr-1"></i> Average temperature: -57°C (-70°F)
-            </div>
-        </div>
-        
-        <!-- Coordinates Display -->
-        <div class="coordinates-panel absolute bottom-4 right-4 bg-gray-900/90 backdrop-blur-md px-4 py-3 rounded-xl text-white border border-blue-500/30 shadow-lg shadow-blue-500/20">
-            <div class="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                    <div class="text-gray-400">Latitude</div>
-                    <div id="latDisplay" class="font-mono text-blue-400">0.00°</div>
-                </div>
-                <div>
-                    <div class="text-gray-400">Longitude</div>
-                    <div id="lngDisplay" class="font-mono text-blue-400">0.00°</div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+  );
+}
 
-    <script>
-        let scene, camera, renderer, earth, clouds, antarctica, controls;
-        let autoRotate = true;
-        let raycaster = new THREE.Raycaster();
-        let mouse = new THREE.Vector2();
-        let rotationSpeed = 0.5;
-        let markers = [];
-        let flightPaths = [];
-        let texturesLoaded = 0;
-        let totalTextures = 3; // Earth, bump map, clouds
-        
-        function init() {
-            // Create scene
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x000000);
+function LeftPromo({ coordRef }) {
+  const xRef = useRef(null), yRef = useRef(null);
+  useEffect(() => { coordRef.current = { x: xRef.current, y: yRef.current }; }, []);
+  return (
+    <div className="absolute left-10 top-[31%] z-10 pointer-events-none max-w-[280px]">
+      <p className="fade-up d3 text-slate-400 text-[15px]">AI-Powered</p>
+      <h2 className="fade-up d4 mt-5 text-white font-light text-[34px] leading-[1.18] tracking-tight">
+        Plan Your<br/>Route with<br/>
+        <span className="inline-flex items-center gap-2">AI Now <ISpark className="text-amber" size={24}/></span>
+      </h2>
+      <a href="#" className="fade-up d5 pointer-events-auto inline-block mt-9 text-amber text-[12.5px] font-semibold tracking-[.16em] border-b border-amber/70 pb-1 hover:text-yellow-300 transition">
+        HOW IT WORKS
+      </a>
+      <div className="fade-up d6 mt-24 text-[13px] text-slate-400 font-light space-y-1.5">
+        <p className="flex gap-5"><span className="text-slate-500 w-3">X:</span><span ref={xRef} className="tabular-nums text-slate-300">5.403478</span></p>
+        <p className="flex gap-5"><span className="text-slate-500 w-3">Y:</span><span ref={yRef} className="tabular-nums text-slate-300">-77.399377</span></p>
+      </div>
+    </div>
+  );
+}
 
-            // Setup camera
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 2.5;
+function RightStats() {
+  return (
+    <div className="absolute right-10 top-[34%] z-10 pointer-events-none text-right select-none">
+      <h3 className="fade-up d3 text-white font-light text-[26px] leading-snug tracking-tight">Main<br/>Statistics</h3>
+      <div className="fade-up d4 mt-9">
+        <p className="text-slate-400 text-[14px]">Monthly Delivered</p>
+        <div className="mt-1.5 flex items-baseline justify-end gap-2.5">
+          <span className="text-white font-light text-[34px] tabular-nums tracking-tight">1021</span>
+          <span className="inline-flex items-center gap-0.5 text-green-400 text-[13px] font-medium"><ITrend size={13}/> +32%</span>
+        </div>
+      </div>
+      <div className="fade-up d5 mt-7">
+        <p className="text-slate-400 text-[14px]">Yearly Delivered</p>
+        <div className="mt-1.5 flex items-baseline justify-end gap-2.5">
+          <span className="text-white font-light text-[34px] tabular-nums tracking-tight">4603</span>
+          <span className="inline-flex items-center gap-0.5 text-green-400 text-[13px] font-medium"><ITrend size={13}/> +12%</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-            // Setup renderer
-            renderer = new THREE.WebGLRenderer({
-                canvas: document.getElementById('earthCanvas'),
-                antialias: true,
-                alpha: true
-            });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
+/* --- Markers projected from the globe --- */
+function Markers({ markerRefs }) {
+  const set = (id) => (el) => { markerRefs.current[id] = el; };
+  return (
+    <div className="absolute inset-0 z-10 overflow-hidden pointer-events-none">
+      {/* USA origin */}
+      <div ref={set("usa")} className="marker">
+        <div className="flex flex-col items-center gap-2.5 -translate-x-1/2" style={{ transform: "translate(-50%, calc(-100% + 7px))" }}>
+          <span className="px-3.5 py-1.5 rounded-full bg-white text-slate-900 text-[12.5px] font-semibold shadow-lg shadow-black/30">USA</span>
+          <span className="relative w-3.5 h-3.5 rounded-full bg-amber shadow-[0_0_14px_3px_rgba(255,200,61,.6)]">
+            <span className="absolute inset-0 rounded-full bg-amber/70 ring-ping"></span>
+          </span>
+        </div>
+      </div>
+      {/* COL destination */}
+      <div ref={set("col")} className="marker">
+        <div className="flex flex-col items-center gap-2.5" style={{ transform: "translate(-50%, calc(-100% + 7px))" }}>
+          <span className="px-3.5 py-1.5 rounded-full bg-white text-slate-900 text-[12.5px] font-semibold shadow-lg shadow-black/30">COL</span>
+          <span className="w-3.5 h-3.5 rounded-full bg-white shadow-[0_0_12px_2px_rgba(255,255,255,.55)]"></span>
+        </div>
+      </div>
+      {/* AA-845 plane badge */}
+      <div ref={set("plane")} className="marker">
+        <div className="flex flex-col items-center gap-3" style={{ transform: "translate(-50%, calc(-100% + 30px))" }}>
+          <span className="px-4 py-2 rounded-full bg-white text-slate-900 text-[13px] font-semibold shadow-xl shadow-black/40">AA-845</span>
+          <span className="w-[60px] h-[60px] rounded-full bg-amber text-slate-900 flex items-center justify-center vehicle-glow">
+            <IPlane size={26} className="rotate-45"/>
+          </span>
+        </div>
+      </div>
+      {/* JL-748 ship */}
+      <div ref={set("jl748")} className="marker">
+        <div className="flex flex-col items-center gap-2.5" style={{ transform: "translate(-50%, -50%)" }}>
+          <span className="px-3.5 py-1.5 rounded-full glass text-white/95 text-[12.5px] font-medium">JL-748</span>
+          <span className="w-10 h-10 rounded-full glass text-white flex items-center justify-center"><IShip size={17}/></span>
+        </div>
+      </div>
+      {/* MU-131 plane */}
+      <div ref={set("mu131")} className="marker">
+        <div className="flex flex-col items-center gap-2.5" style={{ transform: "translate(-50%, -50%)" }}>
+          <span className="px-3.5 py-1.5 rounded-full glass text-white/95 text-[12.5px] font-medium">MU-131</span>
+          <span className="text-white/90"><IPlane size={20} className="rotate-45"/></span>
+        </div>
+      </div>
+      {/* ML-356 truck */}
+      <div ref={set("ml356")} className="marker">
+        <div className="flex flex-col items-center gap-2.5" style={{ transform: "translate(-50%, -50%)" }}>
+          <span className="px-3.5 py-1.5 rounded-full glass text-white/95 text-[12.5px] font-medium">ML-356</span>
+          <span className="w-10 h-10 rounded-full glass text-white flex items-center justify-center"><ITruck size={17}/></span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-            // Add lighting
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-            scene.add(ambientLight);
-            
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-            directionalLight.position.set(5, 3, 5);
-            scene.add(directionalLight);
-            
-            // Add subtle blue point light to simulate atmosphere
-            const blueLight = new THREE.PointLight(0x3677ac, 0.5);
-            blueLight.position.set(-5, 0, -5);
-            scene.add(blueLight);
+function ViewControls({ api }) {
+  const [mode, setMode] = useState("3D");
+  return (
+    <React.Fragment>
+      {/* 3D / 2D toggle */}
+      <div className="fade-up d5 absolute left-1/2 -translate-x-1/2 bottom-[120px] z-10 pointer-events-auto">
+        <div className="flex rounded-2xl glass-light p-1.5 gap-1">
+          {["3D", "2D"].map((m) => (
+            <button key={m} onClick={() => setMode(m)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[14px] font-medium transition ${
+                mode === m ? "bg-white text-slate-900 shadow" : "text-slate-300 hover:text-white"}`}>
+              {m === "3D" ? <ICube size={16}/> : <ILayers size={16}/>} {m}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* Zoom */}
+      <div className="fade-up d5 absolute right-9 bottom-[124px] z-10 pointer-events-auto flex items-center gap-3.5">
+        <span className="text-slate-300 text-[15px] font-light mr-1">Zoom</span>
+        <button onClick={() => api.current && api.current.zoom(-0.35)} className="w-10 h-10 rounded-full glass-light text-white flex items-center justify-center hover:bg-white/[.18] active:scale-95 transition"><IPlus size={16}/></button>
+        <button onClick={() => api.current && api.current.zoom(0.75)} className="w-10 h-10 rounded-full glass-light text-white flex items-center justify-center hover:bg-white/[.18] active:scale-95 transition"><IMinus size={16}/></button>
+        <button onClick={() => api.current && api.current.reset()} className="w-10 h-10 rounded-full bg-white text-slate-900 flex items-center justify-center hover:scale-105 active:scale-95 transition"><ICross size={16}/></button>
+      </div>
+    </React.Fragment>
+  );
+}
 
-            // Create Earth
-            const earthGeometry = new THREE.SphereGeometry(1, 64, 64);
-            
-            // Create material first with a fallback blue color
-            const earthMaterial = new THREE.MeshPhongMaterial({
-                color: 0x2233ff, // Fallback blue color
-                bumpScale: 0.05,
-                specular: new THREE.Color(0x333333),
-                shininess: 15
-            });
-            
-            // Create earth mesh
-            earth = new THREE.Mesh(earthGeometry, earthMaterial);
-            scene.add(earth);
-            
-            // Load high-quality Earth texture with more reliable URLs
-            const textureLoader = new THREE.TextureLoader();
-            
-            // Add loading manager to handle errors and track loading progress
-            const loadingManager = new THREE.LoadingManager();
-            loadingManager.onLoad = function() {
-                console.log('All textures loaded');
-                document.getElementById('loadingIndicator').style.display = 'none';
-            };
-            
-            loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
-                console.log('Loading texture: ' + url + ' (' + itemsLoaded + '/' + itemsTotal + ')');
-            };
-            
-            loadingManager.onError = function(url) {
-                console.error('Error loading texture:', url);
-                texturesLoaded++;
-                checkAllTexturesLoaded();
-            };
-            
-            textureLoader.manager = loadingManager;
-            
-            // Use more reliable texture URLs with multiple fallbacks
-            textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg', 
-                // Success callback
-                function(texture) {
-                    console.log('Earth texture loaded successfully');
-                    earthMaterial.map = texture;
-                    earthMaterial.color.set(0xffffff); // Reset color to white when texture is loaded
-                    earthMaterial.needsUpdate = true;
-                    texturesLoaded++;
-                    checkAllTexturesLoaded();
-                },
-                // Progress callback
-                undefined,
-                // Error callback
-                function(err) {
-                    console.error('Error loading earth texture, trying fallback 1:', err);
-                    // Try first fallback texture
-                    textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/land_ocean_ice_cloud_2048.jpg', 
-                        function(fallbackTexture) {
-                            console.log('First fallback earth texture loaded');
-                            earthMaterial.map = fallbackTexture;
-                            earthMaterial.color.set(0xffffff);
-                            earthMaterial.needsUpdate = true;
-                            texturesLoaded++;
-                            checkAllTexturesLoaded();
-                        },
-                        undefined,
-                        function(err) {
-                            console.error('Error loading fallback 1, trying fallback 2:', err);
-                            // Try second fallback texture
-                            textureLoader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg', 
-                                function(fallbackTexture2) {
-                                    console.log('Second fallback earth texture loaded');
-                                    earthMaterial.map = fallbackTexture2;
-                                    earthMaterial.color.set(0xffffff);
-                                    earthMaterial.needsUpdate = true;
-                                    texturesLoaded++;
-                                    checkAllTexturesLoaded();
-                                },
-                                undefined,
-                                function(err) {
-                                    console.error('Error loading fallback 2, trying fallback 3:', err);
-                                    // Try third fallback texture
-                                    textureLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js/examples/textures/planets/earth_atmos_2048.jpg', 
-                                        function(finalFallback) {
-                                            console.log('Final fallback earth texture loaded');
-                                            earthMaterial.map = finalFallback;
-                                            earthMaterial.color.set(0xffffff);
-                                            earthMaterial.needsUpdate = true;
-                                            texturesLoaded++;
-                                            checkAllTexturesLoaded();
-                                        },
-                                        undefined,
-                                        function(err) {
-                                            console.error('All earth texture fallbacks failed:', err);
-                                            // Try one last direct URL
-                                            textureLoader.load('https://i.imgur.com/jMbNWsT.jpg', 
-                                                function(imgurTexture) {
-                                                    console.log('Imgur earth texture loaded');
-                                                    earthMaterial.map = imgurTexture;
-                                                    earthMaterial.color.set(0xffffff);
-                                                    earthMaterial.needsUpdate = true;
-                                                    texturesLoaded++;
-                                                    checkAllTexturesLoaded();
-                                                },
-                                                undefined,
-                                                function(err) {
-                                                    console.error('All earth texture fallbacks failed:', err);
-                                                    // If all fallbacks fail, keep the blue color
-                                                    texturesLoaded++;
-                                                    checkAllTexturesLoaded();
-                                                }
-                                            );
-                                        }
-                                    );
-                                }
-                            );
-                        }
-                    );
-                }
-            );
-            
-            // Bump map loading with fallbacks
-            textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg',
-                function(bumpTexture) {
-                    earthMaterial.bumpMap = bumpTexture;
-                    earthMaterial.needsUpdate = true;
-                    texturesLoaded++;
-                    checkAllTexturesLoaded();
-                },
-                undefined,
-                function(err) {
-                    console.error('Error loading bump map, trying fallback 1:', err);
-                    // Try fallback bump map
-                    textureLoader.load('https://threejs.org/examples/textures/planets/earth_normal_2048.jpg',
-                        function(fallbackBump) {
-                            earthMaterial.bumpMap = fallbackBump;
-                            earthMaterial.needsUpdate = true;
-                            texturesLoaded++;
-                            checkAllTexturesLoaded();
-                        },
-                        undefined,
-                        function(err) {
-                            console.error('Error loading bump map fallback 1, trying fallback 2:', err);
-                            // Try second fallback for bump map
-                            textureLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js/examples/textures/planets/earth_normal_2048.jpg',
-                                function(finalBumpFallback) {
-                                    earthMaterial.bumpMap = finalBumpFallback;
-                                    earthMaterial.needsUpdate = true;
-                                    texturesLoaded++;
-                                    checkAllTexturesLoaded();
-                                },
-                                undefined,
-                                function(err) {
-                                    console.error('All bump map fallbacks failed:', err);
-                                    // If bump map fails, just continue without it
-                                    texturesLoaded++;
-                                    checkAllTexturesLoaded();
-                                }
-                            );
-                        }
-                    );
-                }
-            );
+/* --- Activities table + Risk card (bottom panel) --- */
+function RouteLine({ from, dist, to, done }) {
+  return (
+    <div className="flex items-center gap-3 min-w-[230px] max-w-[300px] w-full">
+      <span className="text-slate-800 font-semibold text-[13.5px] w-9">{from}</span>
+      <div className="flex-1 flex items-center">
+        <span className={`w-2 h-2 rounded-full ${done ? "bg-royal" : "bg-royal"}`}></span>
+        <span className="h-[2px] flex-[2] bg-royal"></span>
+        <span className="px-1.5 text-[12px] text-slate-400 whitespace-nowrap">{dist}</span>
+        {done
+          ? <span className="h-[2px] flex-[2] bg-royal"></span>
+          : <span className="flex-[2] border-t-2 border-dashed border-slate-300"></span>}
+        <span className={`w-2.5 h-2.5 rounded-full ${done ? "bg-royal" : "bg-white border-2 border-slate-300"}`}></span>
+      </div>
+      <span className="text-slate-800 font-semibold text-[13.5px] w-9 text-right">{to}</span>
+    </div>
+  );
+}
 
-            // Create cloud layer with fallbacks
-            const cloudGeometry = new THREE.SphereGeometry(1.02, 64, 64);
-            const cloudMaterial = new THREE.MeshPhongMaterial({
-                color: 0xffffff, // White base color for clouds
-                transparent: true,
-                opacity: 0.4, // Start with lower opacity until texture loads
-                depthWrite: false
-            });
-            
-            clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
-            scene.add(clouds);
-            
-            textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_clouds_1024.png',
-                // Success callback
-                function(texture) {
-                    console.log('Cloud texture loaded successfully');
-                    cloudMaterial.map = texture;
-                    cloudMaterial.opacity = 0.8; // Increase opacity when texture loads
-                    cloudMaterial.needsUpdate = true;
-                    texturesLoaded++;
-                    checkAllTexturesLoaded();
-                },
-                // Progress callback
-                undefined,
-                // Error callback
-                function(err) {
-                    console.error('Error loading cloud texture, trying fallback 1:', err);
-                    // Try fallback cloud texture
-                    textureLoader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png',
-                        function(fallbackCloud) {
-                            console.log('Fallback cloud texture loaded');
-                            cloudMaterial.map = fallbackCloud;
-                            cloudMaterial.opacity = 0.8;
-                            cloudMaterial.needsUpdate = true;
-                            texturesLoaded++;
-                            checkAllTexturesLoaded();
-                        },
-                        undefined,
-                        function(err) {
-                            console.error('Error loading cloud fallback 1, trying fallback 2:', err);
-                            // Try second fallback for cloud texture
-                            textureLoader.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js/examples/textures/planets/earth_clouds_1024.png',
-                                function(finalCloudFallback) {
-                                    console.log('Final fallback cloud texture loaded');
-                                    cloudMaterial.map = finalCloudFallback;
-                                    cloudMaterial.opacity = 0.8;
-                                    cloudMaterial.needsUpdate = true;
-                                    texturesLoaded++;
-                                    checkAllTexturesLoaded();
-                                },
-                                undefined,
-                                function(err) {
-                                    console.error('All cloud texture fallbacks failed:', err);
-                                    // Try one last direct URL
-                                    textureLoader.load('https://i.imgur.com/Zg3Zjap.png', 
-                                        function(imgurCloud) {
-                                            console.log('Imgur cloud texture loaded');
-                                            cloudMaterial.map = imgurCloud;
-                                            cloudMaterial.opacity = 0.8;
-                                            cloudMaterial.needsUpdate = true;
-                                            texturesLoaded++;
-                                            checkAllTexturesLoaded();
-                                        },
-                                        undefined,
-                                        function(err) {
-                                            console.error('All cloud texture fallbacks failed:', err);
-                                            // If cloud texture fails, just use the white material
-                                            texturesLoaded++;
-                                            checkAllTexturesLoaded();
-                                        }
-                                    );
-                                }
-                            );
-                        }
-                    );
-                }
-            );
-            
-            // Function to check if all textures are loaded
-            function checkAllTexturesLoaded() {
-                if (texturesLoaded >= totalTextures) {
-                    document.getElementById('loadingIndicator').style.display = 'none';
-                    
-                    // If Earth texture didn't load, create a simple procedural texture
-                    if (!earthMaterial.map) {
-                        console.log('Creating procedural Earth texture as last resort');
-                        createProceduralEarthTexture();
-                    }
-                }
-            }
-            
-            // Create a simple procedural texture for Earth as last resort
-            function createProceduralEarthTexture() {
-                const canvas = document.createElement('canvas');
-                canvas.width = 1024;
-                canvas.height = 512;
-                const ctx = canvas.getContext('2d');
-                
-                // Fill with blue for oceans
-                ctx.fillStyle = '#1a4d7e';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Add some green continents (very simplified)
-                ctx.fillStyle = '#2d6a4f';
-                
-                // North America
-                ctx.beginPath();
-                ctx.moveTo(200, 150);
-                ctx.lineTo(280, 120);
-                ctx.lineTo(350, 150);
-                ctx.lineTo(330, 220);
-                ctx.lineTo(250, 260);
-                ctx.lineTo(200, 220);
-                ctx.fill();
-                
-                // South America
-                ctx.beginPath();
-                ctx.moveTo(300, 280);
-                ctx.lineTo(350, 300);
-                ctx.lineTo(330, 380);
-                ctx.lineTo(280, 420);
-                ctx.lineTo(260, 380);
-                ctx.lineTo(280, 320);
-                ctx.fill();
-                
-                // Europe and Africa
-                ctx.beginPath();
-                ctx.moveTo(500, 150);
-                ctx.lineTo(580, 130);
-                ctx.lineTo(600, 200);
-                ctx.lineTo(580, 300);
-                ctx.lineTo(530, 350);
-                ctx.lineTo(480, 320);
-                ctx.lineTo(470, 250);
-                ctx.lineTo(490, 180);
-                ctx.fill();
-                
-                // Asia
-                ctx.beginPath();
-                ctx.moveTo(600, 150);
-                ctx.lineTo(700, 130);
-                ctx.lineTo(750, 180);
-                ctx.lineTo(720, 250);
-                ctx.lineTo(650, 270);
-                ctx.lineTo(600, 220);
-                ctx.fill();
-                
-                // Australia
-                ctx.beginPath();
-                ctx.moveTo(750, 320);
-                ctx.lineTo(800, 310);
-                ctx.lineTo(820, 350);
-                ctx.lineTo(790, 380);
-                ctx.lineTo(750, 370);
-                ctx.fill();
-                
-                // Antarctica (white)
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.arc(512, 450, 80, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Create texture from canvas
-                const texture = new THREE.CanvasTexture(canvas);
-                earthMaterial.map = texture;
-                earthMaterial.color.set(0xffffff);
-                earthMaterial.needsUpdate = true;
-            }
-            
-            // Add Antarctica highlight
-            // Using a more precise geometry for Antarctica (around the south pole)
-            const antarcticaGeometry = new THREE.SphereGeometry(1.015, 64, 64, 0, Math.PI * 2, Math.PI * 0.75, Math.PI * 0.25);
-            const antarcticaMaterial = new THREE.MeshPhongMaterial({
-                color: 0x0088ff,
-                transparent: true,
-                opacity: 0.4,
-                side: THREE.DoubleSide,
-                depthWrite: false
-            });
-            
-            antarctica = new THREE.Mesh(antarcticaGeometry, antarcticaMaterial);
-            scene.add(antarctica);
+const ROWS = [
+  { id: "AA-845", icon: "plane", iconBg: "bg-amber text-slate-900", from: "USA", dist: "3780 ml", to: "COL", date: "Jun 5, 2024", status: "Pending", hl: true },
+  { id: "JL-748", icon: "ship",  iconBg: "bg-royal text-white",     from: "CHN", dist: "620 ml",  to: "KOR", date: "Jun 3, 2024", status: "Pending" },
+  { id: "MU-131", icon: "plane", iconBg: "bg-royal text-white",     from: "JPN", dist: "5875 ml", to: "DEU", date: "Apr 25, 2024", status: "Arrived", done: true },
+];
 
-            // Add flight paths
-            addFlightPaths();
+function BottomPanel({ open, setOpen }) {
+  return (
+    <div className={`absolute inset-x-0 bottom-0 z-30 transition-transform duration-700 [transition-timing-function:cubic-bezier(.32,.72,.18,1)] ${open ? "translate-y-0" : "translate-y-full"}`}>
+      {/* Handle */}
+      <div className="absolute -top-16 inset-x-0 flex justify-center pointer-events-none">
+        <button onClick={() => setOpen(!open)}
+          className="pointer-events-auto flex items-center gap-2.5 px-6 py-3 rounded-full glass-light text-white text-[13.5px] font-medium hover:bg-white/[.16] active:scale-95 transition shadow-xl shadow-black/40">
+          <span className={`transition-transform duration-500 ${open ? "rotate-180" : ""}`}><IChevU size={16}/></span>
+          {open ? "Hide Activities" : "Activities & Risk"}
+          {!open && <span className="ml-1 px-2 py-0.5 rounded-full bg-amber text-slate-900 text-[11px] font-bold">3</span>}
+        </button>
+      </div>
 
-            // Add orbit controls
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-            controls.rotateSpeed = 0.5;
-            controls.autoRotate = autoRotate;
-            controls.autoRotateSpeed = 0.5;
-            controls.minDistance = 1.5;
-            controls.maxDistance = 5;
-            
-            // Event listeners
-            window.addEventListener('resize', onWindowResize, false);
-            window.addEventListener('mousemove', onMouseMove, false);
-            
-            document.getElementById('rotationSpeed').addEventListener('input', updateRotationSpeed);
-            document.getElementById('cloudOpacity').addEventListener('input', updateCloudOpacity);
-            document.getElementById('antarcticaOpacity').addEventListener('input', updateAntarcticaOpacity);
-            document.getElementById('toggleRotation').addEventListener('click', toggleRotation);
+      <div className="mx-6 lg:mx-10 flex panel-shadow rounded-t-[28px] overflow-hidden" style={{ height: "min(420px, 52vh)" }}>
+        {/* Activities */}
+        <div className="flex-[1.75] bg-white px-9 pt-8 pb-6 overflow-y-auto">
+          <div className="flex items-center justify-between gap-6">
+            <h3 className="text-slate-900 text-[26px] font-light tracking-tight">Activities</h3>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 bg-slate-100 rounded-full pl-4 pr-5 py-2.5 w-[300px]">
+                <ISearch size={16} className="text-slate-400"/>
+                <input id="activity-search" name="activity-search" placeholder="Search" className="bg-transparent outline-none text-[14px] text-slate-700 placeholder-slate-400 w-full"/>
+              </div>
+              <button className="w-11 h-11 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 transition"><ISliders size={16}/></button>
+            </div>
+          </div>
 
-            animate();
-        }
+          <div className="mt-6 grid grid-cols-[150px_1fr_150px_130px_40px] gap-x-4 px-4 text-[13px] text-slate-400">
+            <span>Cargo ID</span><span>Destination</span><span>Arrival date</span><span>Status</span><span></span>
+          </div>
 
-        // Add flight paths
-        function addFlightPaths() {
-            // Define flight paths
-            const pathData = [
-                { 
-                    start: { lat: 40.7128, lng: -74.0060 }, // New York
-                    end: { lat: 48.8566, lng: 2.3522 }, // Paris
-                    color: 0xffcc00, // Yellow
-                    name: "AA-845"
-                },
-                { 
-                    start: { lat: 35.6762, lng: 139.6503 }, // Tokyo
-                    end: { lat: 22.3193, lng: 114.1694 }, // Hong Kong
-                    color: 0x00ccff, // Cyan
-                    name: "JL-748"
-                },
-                { 
-                    start: { lat: -33.8688, lng: 151.2093 }, // Sydney
-                    end: { lat: 1.3521, lng: 103.8198 }, // Singapore
-                    color: 0xff66cc, // Pink
-                    name: "ML-131"
-                },
-                { 
-                    start: { lat: 4.7110, lng: -74.0721 }, // Bogotá
-                    end: { lat: -34.6037, lng: -58.3816 }, // Buenos Aires
-                    color: 0x66ff99, // Green
-                    name: "ML-356"
-                }
-            ];
+          <div className="mt-2.5 space-y-1.5">
+            {ROWS.map((r) => (
+              <div key={r.id}
+                className={`grid grid-cols-[150px_1fr_150px_130px_40px] gap-x-4 items-center px-4 py-3 rounded-2xl transition hover:bg-slate-50 ${r.hl ? "bg-slate-50" : ""}`}>
+                <div className="flex items-center gap-3.5">
+                  <span className={`w-10 h-10 rounded-full flex items-center justify-center ${r.iconBg}`}>
+                    {r.icon === "plane" ? <IPlane size={17} className="rotate-45"/> : <IShip size={17}/>}
+                  </span>
+                  <span className="text-slate-900 font-semibold text-[14px]">{r.id}</span>
+                </div>
+                <RouteLine from={r.from} dist={r.dist} to={r.to} done={r.done}/>
+                <span className="text-slate-700 text-[14px]">{r.date}</span>
+                <span>
+                  <span className={`inline-block px-4.5 py-1.5 rounded-full text-[13px] font-medium px-4 ${
+                    r.status === "Pending" ? "bg-royal text-white" : "bg-amber text-slate-900"}`}>{r.status}</span>
+                </span>
+                <button className="text-slate-400 hover:text-slate-700 transition justify-self-end"><IMore size={17}/></button>
+              </div>
+            ))}
+          </div>
+        </div>
 
-            flightPaths = pathData.map(path => {
-                const curve = createCurveFromLatLng(path.start, path.end);
-                const curvePoints = curve.getPoints(100);
-                
-                // Create the path line
-                const curveGeometry = new THREE.BufferGeometry().setFromPoints(curvePoints);
-                const curveMaterial = new THREE.LineBasicMaterial({ 
-                    color: path.color,
-                    linewidth: 3,
-                    transparent: true,
-                    opacity: 0.8
-                });
-                
-                const curveObject = new THREE.Line(curveGeometry, curveMaterial);
-                scene.add(curveObject);
+        {/* Risk card */}
+        <div className="flex-1 min-w-[340px] bg-royal px-8 pt-8 pb-6 text-white relative overflow-hidden">
+          <div className="absolute -right-20 -top-24 w-72 h-72 rounded-full bg-white/[.07] blur-2xl pointer-events-none"></div>
+          <div className="flex items-start justify-between gap-4 relative">
+            <h3 className="text-[24px] font-light leading-tight tracking-tight">Risk of Cargo Loss</h3>
+            <button className="shrink-0 px-5 py-2.5 rounded-full bg-amber text-slate-900 text-[12px] font-bold tracking-[.12em] hover:brightness-105 active:scale-95 transition">DETAILS</button>
+          </div>
 
-                // Add animated point along the path
-                const pointGeometry = new THREE.SphereGeometry(0.015, 16, 16);
-                const pointMaterial = new THREE.MeshBasicMaterial({ 
-                    color: path.color,
-                    transparent: true,
-                    opacity: 0.9
-                });
-                
-                const point = new THREE.Mesh(pointGeometry, pointMaterial);
-                scene.add(point);
+          <div className="mt-7 flex gap-6 relative">
+            <div className="flex-1">
+              <p className="text-white/70 text-[14px]">Loss risk</p>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-[58px] font-light leading-none tracking-tight">10%</span>
+                <IChevD size={20} className="text-amber mt-3"/>
+              </div>
+              <p className="mt-6 text-white/80 text-[14px] leading-relaxed">Minimal risk due<br/>to good weather</p>
+            </div>
+            <div className="w-[170px] h-[160px] rounded-2xl weather-grid border border-white/20 relative shrink-0">
+              <span className="absolute top-3 right-3.5 text-[14px] font-medium">32°</span>
+              <svg viewBox="0 0 170 160" className="absolute inset-0 w-full h-full">
+                <path d="M8 122 Q85 38 162 122" fill="none" stroke="rgba(255,255,255,.9)" strokeWidth="1.6"/>
+                <circle cx="85" cy="80" r="13" fill="#fff"/>
+                <g stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                  <line x1="85" y1="58" x2="85" y2="52"/><line x1="85" y1="102" x2="85" y2="108"/>
+                  <line x1="63" y1="80" x2="57" y2="80"/><line x1="107" y1="80" x2="113" y2="80"/>
+                  <line x1="70" y1="65" x2="66" y2="61"/><line x1="100" y1="95" x2="104" y2="99"/>
+                  <line x1="100" y1="65" x2="104" y2="61"/><line x1="70" y1="95" x2="66" y2="99"/>
+                </g>
+              </svg>
+              <span className="absolute bottom-4 inset-x-0 text-center text-[15px] font-light">Sunny</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-                // Add glow effect to the point
-                const glowGeometry = new THREE.SphereGeometry(0.025, 16, 16);
-                const glowMaterial = new THREE.MeshBasicMaterial({ 
-                    color: path.color,
-                    transparent: true,
-                    opacity: 0.4
-                });
-                
-                const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-                scene.add(glow);
+/* ============================== App ============================== */
+function App() {
+  const mountRef = useRef(null);
+  const markerRefs = useRef({});
+  const coordRef = useRef(null);
+  const api = useRef(null);
+  const [panelOpen, setPanelOpen] = useState(false);
 
-                // Add markers for start and end points
-                const startMarker = addMarker(path.start, 0.02, path.color, path.name);
-                const endMarker = addMarker(path.end, 0.02, path.color);
-                
-                markers.push(startMarker, endMarker);
+  useGlobe(mountRef, markerRefs, coordRef, api);
 
-                return {
-                    path: curveObject,
-                    point: point,
-                    glow: glow,
-                    curve: curve,
-                    progress: Math.random(), // Random starting position
-                    speed: 0.001 + Math.random() * 0.001 // Slightly different speeds
-                };
-            });
-        }
+  return (
+    <div className="h-screen w-screen flex bg-scene text-white overflow-hidden">
+      <Sidebar/>
+      <main className="relative flex-1 h-full">
+        <div className="absolute inset-0 bg-grid pointer-events-none"></div>
+        <div ref={mountRef} className="absolute inset-0"></div>
+        <Markers markerRefs={markerRefs}/>
+        <TopBar/>
+        <LeftPromo coordRef={coordRef}/>
+        <RightStats/>
+        <ViewControls api={api}/>
+        <BottomPanel open={panelOpen} setOpen={setPanelOpen}/>
+      </main>
+    </div>
+  );
+}
 
-        // Create curved flight path
-        function createCurveFromLatLng(start, end) {
-            const startPos = latLngToVector3(start.lat, start.lng);
-            const endPos = latLngToVector3(end.lat, end.lng);
-            
-            // Calculate middle control point
-            const midPoint = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5);
-            const distance = startPos.distanceTo(endPos);
-            
-            // Push the middle point outward to create an arc
-            midPoint.normalize().multiplyScalar(1 + distance * 0.3);
-            
-            // Create a quadratic bezier curve
-            const curve = new THREE.QuadraticBezierCurve3(
-                startPos,
-                midPoint,
-                endPos
-            );
-            
-            return curve;
-        }
-
-        // Convert latitude/longitude to 3D coordinates
-        function latLngToVector3(lat, lng) {
-            const phi = (90 - lat) * Math.PI / 180;
-            const theta = (lng + 180) * Math.PI / 180;
-            
-            const x = -1 * Math.sin(phi) * Math.cos(theta);
-            const y = Math.cos(phi);
-            const z = Math.sin(phi) * Math.sin(theta);
-            
-            return new THREE.Vector3(x, y, z);
-        }
-
-        // Convert 3D coordinates to latitude/longitude
-        function vector3ToLatLng(position) {
-            const normalized = position.clone().normalize();
-            
-            // Calculate latitude
-            const lat = 90 - (Math.acos(normalized.y) * 180 / Math.PI);
-            
-            // Calculate longitude
-            let lng = (Math.atan2(normalized.z, normalized.x) * 180 / Math.PI) + 90;
-            if (lng > 180) lng -= 360;
-            
-            return { lat, lng };
-        }
-
-        // Add marker at a specific lat/lng
-        function addMarker(latLng, size, color, label) {
-            const position = latLngToVector3(latLng.lat, latLng.lng);
-            
-            // Create marker
-            const markerGeometry = new THREE.SphereGeometry(size, 16, 16);
-            const markerMaterial = new THREE.MeshBasicMaterial({ color: color });
-            const marker = new THREE.Mesh(markerGeometry, markerMaterial);
-            marker.position.copy(position);
-            scene.add(marker);
-            
-            // Add ring around marker
-            if (label) {
-                const ringGeometry = new THREE.RingGeometry(size * 1.5, size * 1.8, 16);
-                const ringMaterial = new THREE.MeshBasicMaterial({ 
-                    color: color, 
-                    transparent: true, 
-                    opacity: 0.6,
-                    side: THREE.DoubleSide
-                });
-                
-                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-                ring.position.copy(position);
-                ring.lookAt(0, 0, 0);
-                scene.add(ring);
-                
-                // Store the label with the marker
-                marker.userData = { label: label, position: latLng };
-            }
-            
-            return marker;
-        }
-
-        // Animation loop
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            // Update rotation based on speed slider
-            const speedValue = parseFloat(document.getElementById('rotationSpeed').value);
-            rotationSpeed = speedValue * 0.001;
-            
-            if (autoRotate) {
-                earth.rotation.y += rotationSpeed;
-                clouds.rotation.y += rotationSpeed * 1.1; // Clouds rotate slightly faster
-                antarctica.rotation.y += rotationSpeed; // Keep Antarctica in sync with Earth
-            }
-            
-            // Update flight paths and animated points
-            flightPaths.forEach(item => {
-                // Update progress along the path
-                item.progress += item.speed * speedValue;
-                if (item.progress > 1) item.progress = 0;
-                
-                // Get position along the curve
-                const position = item.curve.getPointAt(item.progress);
-                
-                // Update point and glow positions
-                item.point.position.copy(position);
-                item.glow.position.copy(position);
-                
-                // Pulse effect for glow
-                const scale = 1 + 0.2 * Math.sin(Date.now() * 0.005);
-                item.glow.scale.set(scale, scale, scale);
-            });
-            
-            // Update controls
-            controls.update();
-            
-            // Render scene
-            renderer.render(scene, camera);
-        }
-
-        // Handle window resize
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-        
-        // Handle mouse movement for raycasting
-        function onMouseMove(event) {
-            // Calculate mouse position in normalized device coordinates
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            
-            // Update the raycaster
-            raycaster.setFromCamera(mouse, camera);
-            
-            // Check for intersections with Earth
-            const intersects = raycaster.intersectObject(earth);
-            
-            if (intersects.length > 0) {
-                // Get the point of intersection
-                const point = intersects[0].point;
-                
-                // Convert to lat/lng
-                const latLng = vector3ToLatLng(point);
-                
-                // Update display
-                document.getElementById('latDisplay').textContent = latLng.lat.toFixed(2) + '°';
-                document.getElementById('lngDisplay').textContent = latLng.lng.toFixed(2) + '°';
-            }
-        }
-
-        // Update rotation speed
-        function updateRotationSpeed(e) {
-            const value = e.target.value;
-            document.getElementById('rotationSpeedValue').textContent = value;
-            controls.autoRotateSpeed = value * 2;
-        }
-
-        // Update cloud opacity
-        function updateCloudOpacity(e) {
-            const value = e.target.value;
-            document.getElementById('cloudOpacityValue').textContent = value;
-            clouds.material.opacity = value;
-        }
-        
-        // Update Antarctica highlight opacity
-        function updateAntarcticaOpacity(e) {
-            const value = e.target.value;
-            document.getElementById('antarcticaOpacityValue').textContent = value;
-            antarctica.material.opacity = value;
-        }
-        
-        // Toggle auto-rotation
-        function toggleRotation() {
-            autoRotate = !autoRotate;
-            controls.autoRotate = autoRotate;
-            
-            const button = document.getElementById('toggleRotation');
-            const buttonText = document.getElementById('rotationButtonText');
-            const icon = button.querySelector('i');
-            
-            if (autoRotate) {
-                buttonText.textContent = 'Pause Rotation';
-                icon.className = 'fas fa-pause mr-2';
-                button.classList.remove('bg-green-600', 'hover:bg-green-700');
-                button.classList.add('bg-blue-600', 'hover:bg-blue-700');
-            } else {
-                buttonText.textContent = 'Resume Rotation';
-                icon.className = 'fas fa-play mr-2';
-                button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                button.classList.add('bg-green-600', 'hover:bg-green-700');
-            }
-        }
-
-        // Initialize the application
-        init();
-
-        // Mobile controls panel toggle
-        const controlsPanel = document.querySelector('.controls-panel');
-        const controlsHandle = document.querySelector('.controls-handle');
-
-        if (controlsHandle) {
-            controlsHandle.addEventListener('click', () => {
-                controlsPanel.classList.toggle('expanded');
-            });
-
-            // Close panel when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!controlsPanel.contains(e.target)) {
-                    controlsPanel.classList.remove('expanded');
-                }
-            });
-        }
-    </script>
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
 </body>
 </html>
