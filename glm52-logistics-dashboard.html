@@ -130,62 +130,176 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.7/babel.min.js"></script>
-
-<script type="text/babel" data-presets="react">
+<script>
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 const THREE = window.THREE;
-const { useState, useEffect, useRef, useCallback, useMemo } = React;
+const {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo
+} = React;
 
 /* ───────────────────────── DATA ───────────────────────── */
 
-const HUBS = [
-  { code: 'USA', name: 'United States',   lat: 39.0, lng: -97.0, kind: 'hub',  color: '#ffd54a' },
-  { code: 'COL', name: 'Colombia',        lat: 4.5,  lng: -74.0, kind: 'hub',  color: '#ffffff' },
-];
+const HUBS = [{
+  code: 'USA',
+  name: 'United States',
+  lat: 39.0,
+  lng: -97.0,
+  kind: 'hub',
+  color: '#ffd54a'
+}, {
+  code: 'COL',
+  name: 'Colombia',
+  lat: 4.5,
+  lng: -74.0,
+  kind: 'hub',
+  color: '#ffffff'
+}];
 // Cargo vehicles travelling the routes — shown as gray pills along arcs
-const VEHICLES = [
-  { code: 'AA-845', lat: 22.0, lng: -85.0, mode: 'air',   color: '#9fb4d4' }, // on USA->COL arc
-  { code: 'JL-748', lat: 34.0, lng: 125.0, mode: 'ship',  color: '#9fb4d4' }, // CHN->KOR
-  { code: 'MU-131', lat: 52.0, lng: 30.0,  mode: 'air',   color: '#9fb4d4' }, // JPN->DEU
-  { code: 'ML-356', lat: 25.0, lng: 150.0, mode: 'truck', color: '#9fb4d4' }, // COL->JPN
+const VEHICLES = [{
+  code: 'AA-845',
+  lat: 22.0,
+  lng: -85.0,
+  mode: 'air',
+  color: '#9fb4d4'
+},
+// on USA->COL arc
+{
+  code: 'JL-748',
+  lat: 34.0,
+  lng: 125.0,
+  mode: 'ship',
+  color: '#9fb4d4'
+},
+// CHN->KOR
+{
+  code: 'MU-131',
+  lat: 52.0,
+  lng: 30.0,
+  mode: 'air',
+  color: '#9fb4d4'
+},
+// JPN->DEU
+{
+  code: 'ML-356',
+  lat: 25.0,
+  lng: 150.0,
+  mode: 'truck',
+  color: '#9fb4d4'
+} // COL->JPN
 ];
-const ROUTES = [
-  { id: 'AA-845', a: { lat: 39.0, lng: -97.0 }, b: { lat: 4.5, lng: -74.0 },  primary: true,  color: '#ffd54a' },
-  { id: 'JL-748', a: { lat: 31.0, lng: 121.0 }, b: { lat: 37.5, lng: 127.0 }, primary: false, color: '#8fd0ff' },
-  { id: 'MU-131', a: { lat: 35.5, lng: 139.8}, b: { lat: 51.0, lng: 10.0 },   primary: false, color: '#8fd0ff' },
-  { id: 'ML-356', a: { lat: 4.5,  lng: -74.0 }, b: { lat: 35.5, lng: 139.8},  primary: false, color: '#cfe0f5' },
-];
-
-const ACTIVITIES = [
-  { id: 'AA-845', from: 'USA', to: 'COL', dist: '3780 ml', date: 'Jun 5, 2024',  progress: 50, status: 'Pending', mode: 'air'   },
-  { id: 'JL-748', from: 'CHN', to: 'KOR', dist: '620 ml',  date: 'Jun 3, 2024',  progress: 30, status: 'Pending', mode: 'ship'  },
-  { id: 'MU-131', from: 'JPN', to: 'DEU', dist: '5875 ml', date: 'Apr 25, 2024', progress: 80, status: 'Arrived', mode: 'air'   },
-  { id: 'ML-356', from: 'COL', to: 'JPN', dist: '9020 ml', date: 'Jun 14, 2024', progress: 64, status: 'In transit', mode: 'truck' },
-];
+const ROUTES = [{
+  id: 'AA-845',
+  a: {
+    lat: 39.0,
+    lng: -97.0
+  },
+  b: {
+    lat: 4.5,
+    lng: -74.0
+  },
+  primary: true,
+  color: '#ffd54a'
+}, {
+  id: 'JL-748',
+  a: {
+    lat: 31.0,
+    lng: 121.0
+  },
+  b: {
+    lat: 37.5,
+    lng: 127.0
+  },
+  primary: false,
+  color: '#8fd0ff'
+}, {
+  id: 'MU-131',
+  a: {
+    lat: 35.5,
+    lng: 139.8
+  },
+  b: {
+    lat: 51.0,
+    lng: 10.0
+  },
+  primary: false,
+  color: '#8fd0ff'
+}, {
+  id: 'ML-356',
+  a: {
+    lat: 4.5,
+    lng: -74.0
+  },
+  b: {
+    lat: 35.5,
+    lng: 139.8
+  },
+  primary: false,
+  color: '#cfe0f5'
+}];
+const ACTIVITIES = [{
+  id: 'AA-845',
+  from: 'USA',
+  to: 'COL',
+  dist: '3780 ml',
+  date: 'Jun 5, 2024',
+  progress: 50,
+  status: 'Pending',
+  mode: 'air'
+}, {
+  id: 'JL-748',
+  from: 'CHN',
+  to: 'KOR',
+  dist: '620 ml',
+  date: 'Jun 3, 2024',
+  progress: 30,
+  status: 'Pending',
+  mode: 'ship'
+}, {
+  id: 'MU-131',
+  from: 'JPN',
+  to: 'DEU',
+  dist: '5875 ml',
+  date: 'Apr 25, 2024',
+  progress: 80,
+  status: 'Arrived',
+  mode: 'air'
+}, {
+  id: 'ML-356',
+  from: 'COL',
+  to: 'JPN',
+  dist: '9020 ml',
+  date: 'Jun 14, 2024',
+  progress: 64,
+  status: 'In transit',
+  mode: 'truck'
+}];
 
 /* ───────────────────────── GEO HELPERS ───────────────────────── */
 
 function latLngToVec3(lat, lng, radius) {
   const phi = (90 - lat) * Math.PI / 180;
   const theta = (lng + 180) * Math.PI / 180;
-  return new THREE.Vector3(
-    -radius * Math.sin(phi) * Math.cos(theta),
-     radius * Math.cos(phi),
-     radius * Math.sin(phi) * Math.sin(theta)
-  );
+  return new THREE.Vector3(-radius * Math.sin(phi) * Math.cos(theta), radius * Math.cos(phi), radius * Math.sin(phi) * Math.sin(theta));
 }
-
 function makeGlowTexture(inner = 'rgba(255,255,255,1)', mid = 'rgba(150,220,255,0.55)', outer = 'rgba(56,189,248,0)') {
-  const s = 128; const c = document.createElement('canvas'); c.width = c.height = s;
+  const s = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = s;
   const ctx = c.getContext('2d');
-  const g = ctx.createRadialGradient(s/2, s/2, 0, s/2, s/2, s/2);
+  const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
   g.addColorStop(0.0, inner);
   g.addColorStop(0.25, mid);
   g.addColorStop(1.0, outer);
-  ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, s, s);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }
-
 function roundRectPath(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -195,15 +309,15 @@ function roundRectPath(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
 }
-
 function makeLabelSprite(text, opts = {}) {
   const {
     dotColor = '#ffd54a',
     bg = 'rgba(255,255,255,0.95)',
     fg = '#0a192f',
     fontSize = 22,
-    padX = 12, dotR = 5,
-    scale = 0.0032,
+    padX = 12,
+    dotR = 5,
+    scale = 0.0032
   } = opts;
   const c = document.createElement('canvas');
   const ctx = c.getContext('2d');
@@ -212,26 +326,45 @@ function makeLabelSprite(text, opts = {}) {
   const w = tw + padX * 2 + dotR * 2 + 8;
   const h = fontSize + 18;
   const dpr = 3;
-  c.width = w * dpr; c.height = h * dpr;
-  c.style.width = `${w}px`; c.style.height = `${h}px`;
+  c.width = w * dpr;
+  c.height = h * dpr;
+  c.style.width = `${w}px`;
+  c.style.height = `${h}px`;
   ctx.scale(dpr, dpr);
   ctx.font = `700 ${fontSize}px Inter, system-ui, sans-serif`;
   // soft shadow
-  ctx.shadowColor = 'rgba(0,0,0,0.34)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2;
+  ctx.shadowColor = 'rgba(0,0,0,0.34)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetY = 2;
   roundRectPath(ctx, 0, 0, w, h, h / 2);
-  ctx.fillStyle = bg; ctx.fill();
+  ctx.fillStyle = bg;
+  ctx.fill();
   ctx.shadowColor = 'transparent';
   // dot
-  ctx.beginPath(); ctx.arc(padX + dotR, h / 2, dotR, 0, Math.PI * 2);
-  ctx.fillStyle = dotColor; ctx.fill();
-  ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(10,25,47,0.15)'; ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(padX + dotR, h / 2, dotR, 0, Math.PI * 2);
+  ctx.fillStyle = dotColor;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(10,25,47,0.15)';
+  ctx.stroke();
   // text
-  ctx.fillStyle = fg; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  ctx.fillStyle = fg;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
   ctx.fillText(text, padX + dotR * 2 + 8, h / 2 + 1);
   const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
-  tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, alphaTest: 0.02, depthWrite: false, depthTest: true });
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({
+    map: tex,
+    transparent: true,
+    alphaTest: 0.02,
+    depthWrite: false,
+    depthTest: true
+  });
   const sp = new THREE.Sprite(mat);
   sp.scale.set(w * scale, h * scale, 1);
   sp.userData.baseScale = sp.scale.clone();
@@ -241,415 +374,701 @@ function makeLabelSprite(text, opts = {}) {
 /* ───────────────────────── ICONS ───────────────────────── */
 
 const I = {
-  globe: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <circle cx="12" cy="12" r="9.2" /><path d="M3 12h18M12 3c2.6 2.4 4 5.6 4 9s-1.4 6.6-4 9c-2.6-2.4-4-5.6-4-9s1.4-6.6 4-9z" />
-    </svg>
-  ),
-  cube: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" {...p}>
-      <path d="M12 2.8 21 7.5v9L12 21.2 3 16.5v-9z" /><path d="M3 7.5l9 4.7 9-4.7M12 12.2v9" />
-    </svg>
-  ),
-  chart: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-8M20 16v-3" />
-    </svg>
-  ),
-  user: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <circle cx="12" cy="8.5" r="3.6" /><path d="M5 20c1-3.7 4-5.5 7-5.5s6 1.8 7 5.5" />
-    </svg>
-  ),
-  gear: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <circle cx="12" cy="12" r="3.2" /><path d="M12 2.5v2.4M12 19.1v2.4M21.5 12h-2.4M4.9 12H2.5M18.7 5.3l-1.7 1.7M7 17l-1.7 1.7M18.7 18.7 17 17M7 7 5.3 5.3" />
-    </svg>
-  ),
-  expand: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
-    </svg>
-  ),
-  bell: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6z" /><path d="M10 19a2 2 0 0 0 4 0" />
-    </svg>
-  ),
-  search: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" />
-    </svg>
-  ),
-  filter: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M3 5h18l-7 8v6l-4-2v-4z" />
-    </svg>
-  ),
-  dots: (p) => (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...p}><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
-  ),
-  plus: (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" {...p}><path d="M12 5v14M5 12h14"/></svg>),
-  minus: (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" {...p}><path d="M5 12h14"/></svg>),
-  target: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <circle cx="12" cy="12" r="3.4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-  ),
-  air: (p) => (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...p}><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-4.5z"/></svg>
-  ),
-  ship: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M3 16l1.5 3.5a2 2 0 0 0 3.7 0 2 2 0 0 0 3.7 0 2 2 0 0 0 3.7 0A2 2 0 0 0 20 19l1-3"/>
-      <path d="M4 14h16l-2-6H6z"/><path d="M12 8V5M9 8V6M15 8V6"/>
-    </svg>
-  ),
-  truck: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M3 6h11v9H3zM14 9h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/>
-    </svg>
-  ),
-  sun: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/>
-    </svg>
-  ),
-  moon: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"/></svg>
-  ),
-  chevron: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m6 15 6-6 6 6"/></svg>
-  ),
-  arrowDown: (p) => (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...p}><path d="M12 17a1.5 1.5 0 0 1-1.06-.44l-5-5 2.12-2.12L10.5 11.8V5h3v6.8l2.44-2.36 2.12 2.12-5 5A1.5 1.5 0 0 1 12 17z"/></svg>
-  ),
-  arrowUp: (p) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 19V5M6 11l6-6 6 6"/></svg>
-  ),
+  globe: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.7",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "9.2"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M3 12h18M12 3c2.6 2.4 4 5.6 4 9s-1.4 6.6-4 9c-2.6-2.4-4-5.6-4-9s1.4-6.6 4-9z"
+  })),
+  cube: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.7",
+    strokeLinejoin: "round",
+    strokeLinecap: "round"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M12 2.8 21 7.5v9L12 21.2 3 16.5v-9z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M3 7.5l9 4.7 9-4.7M12 12.2v9"
+  })),
+  chart: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.7",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-8M20 16v-3"
+  })),
+  user: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.7",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "8.5",
+    r: "3.6"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M5 20c1-3.7 4-5.5 7-5.5s6 1.8 7 5.5"
+  })),
+  gear: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.7",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "3.2"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 2.5v2.4M12 19.1v2.4M21.5 12h-2.4M4.9 12H2.5M18.7 5.3l-1.7 1.7M7 17l-1.7 1.7M18.7 18.7 17 17M7 7 5.3 5.3"
+  })),
+  expand: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.7",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"
+  })),
+  bell: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.7",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M10 19a2 2 0 0 0 4 0"
+  })),
+  search: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("circle", {
+    cx: "11",
+    cy: "11",
+    r: "7"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "m20 20-3.2-3.2"
+  })),
+  filter: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M3 5h18l-7 8v6l-4-2v-4z"
+  })),
+  dots: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "currentColor"
+  }, p), /*#__PURE__*/React.createElement("circle", {
+    cx: "5",
+    cy: "12",
+    r: "1.7"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "1.7"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "19",
+    cy: "12",
+    r: "1.7"
+  })),
+  plus: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2.4",
+    strokeLinecap: "round"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M12 5v14M5 12h14"
+  })),
+  minus: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2.4",
+    strokeLinecap: "round"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M5 12h14"
+  })),
+  target: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "3.4"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 2v3M12 19v3M2 12h3M19 12h3"
+  })),
+  air: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "currentColor"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-4.5z"
+  })),
+  ship: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.7",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M3 16l1.5 3.5a2 2 0 0 0 3.7 0 2 2 0 0 0 3.7 0 2 2 0 0 0 3.7 0A2 2 0 0 0 20 19l1-3"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M4 14h16l-2-6H6z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 8V5M9 8V6M15 8V6"
+  })),
+  truck: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.7",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M3 6h11v9H3zM14 9h4l3 3v3h-7z"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "7",
+    cy: "18",
+    r: "1.6"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "17.5",
+    cy: "18",
+    r: "1.6"
+  })),
+  sun: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "4"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"
+  })),
+  moon: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"
+  })),
+  chevron: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2.2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "m6 15 6-6 6 6"
+  })),
+  arrowDown: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "currentColor"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M12 17a1.5 1.5 0 0 1-1.06-.44l-5-5 2.12-2.12L10.5 11.8V5h3v6.8l2.44-2.36 2.12 2.12-5 5A1.5 1.5 0 0 1 12 17z"
+  })),
+  arrowUp: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2.4",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M12 19V5M6 11l6-6 6 6"
+  }))
 };
-
-const ModeIcon = ({ mode, className }) => {
+const ModeIcon = ({
+  mode,
+  className
+}) => {
   const Cmp = mode === 'air' ? I.air : mode === 'ship' ? I.ship : I.truck;
-  return <Cmp className={className} />;
+  return /*#__PURE__*/React.createElement(Cmp, {
+    className: className
+  });
 };
 
 /* ───────────────────────── SIDEBAR ───────────────────────── */
 
 function Sidebar() {
-  return (
-    <aside className="fixed left-0 top-0 bottom-0 z-30 w-[88px] flex flex-col items-center py-5 gap-1 glass-soft border-r border-white/5 pointer-events-auto">
-      {/* brand */}
-      <div className="mb-2 flex flex-col items-center gap-1">
-        <div className="h-11 w-11 rounded-2xl grid place-items-center bg-gradient-to-br from-accent-blue to-accent-cyan shadow-glow">
-          <I.globe className="h-6 w-6 text-white" />
-        </div>
-      </div>
-
-      <NavBtn active label="AI-Powered"><I.globe className="h-6 w-6" /></NavBtn>
-
-      {/* AI route planner */}
-      <button className="pill-hover relative mt-1 w-[68px] overflow-hidden rounded-2xl border border-accent-yellow/40 bg-accent-yellow/10 px-1 py-3 flex flex-col items-center gap-1.5 text-center">
-        <span className="absolute inset-0 ai-shimmer pointer-events-none"></span>
-        <I.cube className="h-6 w-6 text-accent-yellow relative" />
-        <span className="relative text-[9px] font-semibold leading-tight text-white">
-          Plan Your Route with AI Now <span className="text-accent-yellow">✨</span>
-        </span>
-      </button>
-
-      <NavBtn><I.chart className="h-6 w-6" /></NavBtn>
-
-      <button className="pill-hover flex flex-col items-center gap-1 py-2 px-2 rounded-xl hover:bg-white/5">
-        <I.user className="h-6 w-6 text-white" />
-        <span className="text-[9px] font-bold text-accent-yellow underline underline-offset-2">HOW IT WORKS</span>
-      </button>
-
-      <div className="flex-1"></div>
-
-      <NavBtn><I.gear className="h-6 w-6" /></NavBtn>
-      <NavBtn><I.expand className="h-6 w-6" /></NavBtn>
-
-      <div className="mt-3 px-1 text-center text-[9px] leading-relaxed text-white/40 font-mono">
-        X: 5.403478<br />Y: -77.399377
-      </div>
-    </aside>
-  );
+  return /*#__PURE__*/React.createElement("aside", {
+    className: "fixed left-0 top-0 bottom-0 z-30 w-[88px] flex flex-col items-center py-5 gap-1 glass-soft border-r border-white/5 pointer-events-auto"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mb-2 flex flex-col items-center gap-1"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "h-11 w-11 rounded-2xl grid place-items-center bg-gradient-to-br from-accent-blue to-accent-cyan shadow-glow"
+  }, /*#__PURE__*/React.createElement(I.globe, {
+    className: "h-6 w-6 text-white"
+  }))), /*#__PURE__*/React.createElement(NavBtn, {
+    active: true,
+    label: "AI-Powered"
+  }, /*#__PURE__*/React.createElement(I.globe, {
+    className: "h-6 w-6"
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "pill-hover relative mt-1 w-[68px] overflow-hidden rounded-2xl border border-accent-yellow/40 bg-accent-yellow/10 px-1 py-3 flex flex-col items-center gap-1.5 text-center"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "absolute inset-0 ai-shimmer pointer-events-none"
+  }), /*#__PURE__*/React.createElement(I.cube, {
+    className: "h-6 w-6 text-accent-yellow relative"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "relative text-[9px] font-semibold leading-tight text-white"
+  }, "Plan Your Route with AI Now ", /*#__PURE__*/React.createElement("span", {
+    className: "text-accent-yellow"
+  }, "\u2728"))), /*#__PURE__*/React.createElement(NavBtn, null, /*#__PURE__*/React.createElement(I.chart, {
+    className: "h-6 w-6"
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "pill-hover flex flex-col items-center gap-1 py-2 px-2 rounded-xl hover:bg-white/5"
+  }, /*#__PURE__*/React.createElement(I.user, {
+    className: "h-6 w-6 text-white"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] font-bold text-accent-yellow underline underline-offset-2"
+  }, "HOW IT WORKS")), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1"
+  }), /*#__PURE__*/React.createElement(NavBtn, null, /*#__PURE__*/React.createElement(I.gear, {
+    className: "h-6 w-6"
+  })), /*#__PURE__*/React.createElement(NavBtn, null, /*#__PURE__*/React.createElement(I.expand, {
+    className: "h-6 w-6"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "mt-3 px-1 text-center text-[9px] leading-relaxed text-white/40 font-mono"
+  }, "X: 5.403478", /*#__PURE__*/React.createElement("br", null), "Y: -77.399377"));
 }
-function NavBtn({ children, label, active }) {
-  return (
-    <button title={label} className={`pill-hover group relative flex flex-col items-center gap-1 py-2 px-2 rounded-xl ${active ? 'bg-white/10' : 'hover:bg-white/5'}`}>
-      {active && <span className="absolute -left-[14px] top-1/2 -translate-y-1/2 h-6 w-1 rounded-full bg-accent-cyan shadow-glow"></span>}
-      <span className={`text-white`}>{children}</span>
-      {label && <span className="text-[9px] text-white/55 font-medium">{label}</span>}
-    </button>
-  );
+function NavBtn({
+  children,
+  label,
+  active
+}) {
+  return /*#__PURE__*/React.createElement("button", {
+    title: label,
+    className: `pill-hover group relative flex flex-col items-center gap-1 py-2 px-2 rounded-xl ${active ? 'bg-white/10' : 'hover:bg-white/5'}`
+  }, active && /*#__PURE__*/React.createElement("span", {
+    className: "absolute -left-[14px] top-1/2 -translate-y-1/2 h-6 w-1 rounded-full bg-accent-cyan shadow-glow"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: `text-white`
+  }, children), label && /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] text-white/55 font-medium"
+  }, label));
 }
 
 /* ───────────────────────── TOP BAR ───────────────────────── */
 
 function TopBar() {
-  return (
-    <header className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between px-6 pt-5 pointer-events-none">
-      {/* left: theme toggle */}
-      <div className="pointer-events-auto flex items-center gap-2">
-        <div className="flex items-center gap-1 rounded-full glass p-1">
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-black text-white"><I.moon className="h-4 w-4" /></span>
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-white/10 text-accent-yellow"><I.sun className="h-4 w-4" /></span>
-        </div>
-      </div>
-
-      {/* center: title */}
-      <div className="pointer-events-none flex flex-col items-center text-center">
-        <h1 className="text-[34px] md:text-[40px] font-extrabold tracking-tight text-white text-glow leading-none">
-          Global View
-        </h1>
-        <div className="mt-2 flex items-center gap-2 text-[12px]">
-          <span className="relative inline-block h-2 w-2"><span className="live-dot absolute inset-0 rounded-full"></span><span className="absolute inset-0 rounded-full bg-status-ok"></span></span>
-          <span className="font-semibold tracking-[0.25em] text-white/70">LIVE TRACKING</span>
-          <span className="text-white/30">•</span>
-          <span className="font-semibold text-white">153 ms</span>
-        </div>
-      </div>
-
-      {/* right: profile + bell */}
-      <div className="pointer-events-auto flex items-center gap-2">
-        <button className="grid h-10 w-10 place-items-center rounded-full glass text-white/80 hover:text-white pill-hover"><I.bell className="h-5 w-5" />
-          <span className="absolute -mt-4 ml-4 h-2.5 w-2.5 rounded-full bg-accent-yellow ring-2 ring-navy-900"></span>
-        </button>
-        <button className="grid h-10 w-10 place-items-center rounded-full glass text-white/80 hover:text-white pill-hover"><I.user className="h-5 w-5" /></button>
-      </div>
-    </header>
-  );
+  return /*#__PURE__*/React.createElement("header", {
+    className: "fixed top-0 left-0 right-0 z-20 flex items-center justify-between px-6 pt-5 pointer-events-none"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pointer-events-auto flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1 rounded-full glass p-1"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "grid h-7 w-7 place-items-center rounded-full bg-black text-white"
+  }, /*#__PURE__*/React.createElement(I.moon, {
+    className: "h-4 w-4"
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "grid h-7 w-7 place-items-center rounded-full bg-white/10 text-accent-yellow"
+  }, /*#__PURE__*/React.createElement(I.sun, {
+    className: "h-4 w-4"
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "pointer-events-none flex flex-col items-center text-center"
+  }, /*#__PURE__*/React.createElement("h1", {
+    className: "text-[34px] md:text-[40px] font-extrabold tracking-tight text-white text-glow leading-none"
+  }, "Global View"), /*#__PURE__*/React.createElement("div", {
+    className: "mt-2 flex items-center gap-2 text-[12px]"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "relative inline-block h-2 w-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "live-dot absolute inset-0 rounded-full"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "absolute inset-0 rounded-full bg-status-ok"
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold tracking-[0.25em] text-white/70"
+  }, "LIVE TRACKING"), /*#__PURE__*/React.createElement("span", {
+    className: "text-white/30"
+  }, "\u2022"), /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold text-white"
+  }, "153 ms"))), /*#__PURE__*/React.createElement("div", {
+    className: "pointer-events-auto flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "grid h-10 w-10 place-items-center rounded-full glass text-white/80 hover:text-white pill-hover"
+  }, /*#__PURE__*/React.createElement(I.bell, {
+    className: "h-5 w-5"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "absolute -mt-4 ml-4 h-2.5 w-2.5 rounded-full bg-accent-yellow ring-2 ring-navy-900"
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "grid h-10 w-10 place-items-center rounded-full glass text-white/80 hover:text-white pill-hover"
+  }, /*#__PURE__*/React.createElement(I.user, {
+    className: "h-5 w-5"
+  }))));
 }
 
 /* ───────────────────────── STATS PANEL ───────────────────────── */
 
-function Stat({ label, value, delta }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <div className="text-[12px] font-medium uppercase tracking-wider text-white/55">{label}</div>
-      <div className="mt-1 flex items-end justify-between">
-        <div className="text-[32px] font-extrabold leading-none text-white">{value}</div>
-        <div className="mb-1 inline-flex items-center gap-1 rounded-full bg-status-ok/15 px-2 py-1 text-[12px] font-semibold text-status-ok">
-          <I.arrowUp className="h-3 w-3" />{delta}
-        </div>
-      </div>
-      {/* mini sparkline */}
-      <div className="mt-3 flex items-end gap-1 h-8">
-        {[40, 55, 48, 70, 62, 85, 78, 96].map((h, i) => (
-          <span key={i} className="flex-1 rounded-sm bg-gradient-to-t from-accent-blue/40 to-accent-cyan" style={{ height: `${h}%` }}></span>
-        ))}
-      </div>
-    </div>
-  );
+function Stat({
+  label,
+  value,
+  delta
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "rounded-2xl border border-white/10 bg-white/5 p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[12px] font-medium uppercase tracking-wider text-white/55"
+  }, label), /*#__PURE__*/React.createElement("div", {
+    className: "mt-1 flex items-end justify-between"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[32px] font-extrabold leading-none text-white"
+  }, value), /*#__PURE__*/React.createElement("div", {
+    className: "mb-1 inline-flex items-center gap-1 rounded-full bg-status-ok/15 px-2 py-1 text-[12px] font-semibold text-status-ok"
+  }, /*#__PURE__*/React.createElement(I.arrowUp, {
+    className: "h-3 w-3"
+  }), delta)), /*#__PURE__*/React.createElement("div", {
+    className: "mt-3 flex items-end gap-1 h-8"
+  }, [40, 55, 48, 70, 62, 85, 78, 96].map((h, i) => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    className: "flex-1 rounded-sm bg-gradient-to-t from-accent-blue/40 to-accent-cyan",
+    style: {
+      height: `${h}%`
+    }
+  }))));
 }
-
 function StatsPanel() {
-  return (
-    <div className="fixed right-5 top-24 z-20 w-[230px] pointer-events-auto fade-in">
-      <div className="glass rounded-3xl p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[18px] font-bold text-white">Main Statistics</h2>
-          <span className="text-[10px] font-semibold text-accent-cyan">2024</span>
-        </div>
-        <div className="flex flex-col gap-3">
-          <Stat label="Monthly Delivered" value="1021" delta="+32%" />
-          <Stat label="Yearly Delivered" value="4603" delta="+12%" />
-        </div>
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fixed right-5 top-24 z-20 w-[230px] pointer-events-auto fade-in"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "glass rounded-3xl p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mb-3 flex items-center justify-between"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "text-[18px] font-bold text-white"
+  }, "Main Statistics"), /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] font-semibold text-accent-cyan"
+  }, "2024")), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-3"
+  }, /*#__PURE__*/React.createElement(Stat, {
+    label: "Monthly Delivered",
+    value: "1021",
+    delta: "+32%"
+  }), /*#__PURE__*/React.createElement(Stat, {
+    label: "Yearly Delivered",
+    value: "4603",
+    delta: "+12%"
+  }))));
 }
 
 /* ───────────────────────── ZOOM + VIEW TOGGLE ───────────────────────── */
 
-function ZoomControls({ controls, dimmed }) {
+function ZoomControls({
+  controls,
+  dimmed
+}) {
   const [zoom, setZoom] = useState(60);
   useEffect(() => {
     if (controls && controls.onZoom) controls.onZoom(setZoom);
   }, [controls]);
-  return (
-    <div className={`fixed bottom-7 right-5 z-30 pointer-events-auto flex flex-col items-center gap-1 transition-all duration-500 ${dimmed ? 'opacity-0 translate-y-3 pointer-events-none' : 'opacity-100'}`}>
-      <div className="text-[11px] font-semibold tracking-wider text-white/70 mb-1">Zoom</div>
-      <div className="flex flex-col items-center gap-2 rounded-full glass px-2 py-3">
-        <button onClick={() => controls && controls.zoomIn()} className="grid h-9 w-9 place-items-center rounded-full bg-white text-navy-900 hover:bg-accent-yellow pill-hover shadow"><I.plus className="h-4 w-4" /></button>
-        <div className="h-16 w-[3px] rounded-full bg-white/15 relative overflow-hidden">
-          <div className="absolute left-0 right-0 bottom-0 bg-accent-cyan" style={{ height: `${zoom}%` }}></div>
-        </div>
-        <button onClick={() => controls && controls.zoomOut()} className="grid h-9 w-9 place-items-center rounded-full bg-white text-navy-900 hover:bg-accent-yellow pill-hover shadow"><I.minus className="h-4 w-4" /></button>
-        <span className="my-1 h-px w-6 bg-white/15"></span>
-        <button onClick={() => controls && controls.reset()} className="grid h-9 w-9 place-items-center rounded-full bg-white text-navy-900 hover:bg-accent-cyan hover:text-white pill-hover shadow"><I.target className="h-4 w-4" /></button>
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    className: `fixed bottom-7 right-5 z-30 pointer-events-auto flex flex-col items-center gap-1 transition-all duration-500 ${dimmed ? 'opacity-0 translate-y-3 pointer-events-none' : 'opacity-100'}`
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] font-semibold tracking-wider text-white/70 mb-1"
+  }, "Zoom"), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col items-center gap-2 rounded-full glass px-2 py-3"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => controls && controls.zoomIn(),
+    className: "grid h-9 w-9 place-items-center rounded-full bg-white text-navy-900 hover:bg-accent-yellow pill-hover shadow"
+  }, /*#__PURE__*/React.createElement(I.plus, {
+    className: "h-4 w-4"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "h-16 w-[3px] rounded-full bg-white/15 relative overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "absolute left-0 right-0 bottom-0 bg-accent-cyan",
+    style: {
+      height: `${zoom}%`
+    }
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => controls && controls.zoomOut(),
+    className: "grid h-9 w-9 place-items-center rounded-full bg-white text-navy-900 hover:bg-accent-yellow pill-hover shadow"
+  }, /*#__PURE__*/React.createElement(I.minus, {
+    className: "h-4 w-4"
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "my-1 h-px w-6 bg-white/15"
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => controls && controls.reset(),
+    className: "grid h-9 w-9 place-items-center rounded-full bg-white text-navy-900 hover:bg-accent-cyan hover:text-white pill-hover shadow"
+  }, /*#__PURE__*/React.createElement(I.target, {
+    className: "h-4 w-4"
+  }))));
 }
-
-function ViewToggle({ mode, setMode, dimmed }) {
-  return (
-    <div className={`fixed bottom-7 left-1/2 -translate-x-1/2 z-30 pointer-events-auto transition-all duration-500 ${dimmed ? 'opacity-0 translate-y-3 pointer-events-none' : 'opacity-100'}`}>
-      <div className="flex items-center gap-1 rounded-full glass p-1">
-        <button onClick={() => setMode('3d')} className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold pill-hover ${mode==='3d' ? 'bg-white text-navy-900' : 'text-white/70 hover:text-white'}`}>
-          <I.cube className="h-4 w-4" /> 3D
-        </button>
-        <button onClick={() => setMode('2d')} className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold pill-hover ${mode==='2d' ? 'bg-white text-navy-900' : 'text-white/70 hover:text-white'}`}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
-          2D
-        </button>
-      </div>
-    </div>
-  );
+function ViewToggle({
+  mode,
+  setMode,
+  dimmed
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: `fixed bottom-7 left-1/2 -translate-x-1/2 z-30 pointer-events-auto transition-all duration-500 ${dimmed ? 'opacity-0 translate-y-3 pointer-events-none' : 'opacity-100'}`
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1 rounded-full glass p-1"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMode('3d'),
+    className: `flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold pill-hover ${mode === '3d' ? 'bg-white text-navy-900' : 'text-white/70 hover:text-white'}`
+  }, /*#__PURE__*/React.createElement(I.cube, {
+    className: "h-4 w-4"
+  }), " 3D"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMode('2d'),
+    className: `flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold pill-hover ${mode === '2d' ? 'bg-white text-navy-900' : 'text-white/70 hover:text-white'}`
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.8",
+    className: "h-4 w-4"
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "3",
+    y: "3",
+    width: "18",
+    height: "18",
+    rx: "2"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M3 9h18M3 15h18M9 3v18M15 3v18"
+  })), "2D")));
 }
 
 /* ───────────────────────── BOTTOM PANEL ───────────────────────── */
 
-function StatusBadge({ status }) {
+function StatusBadge({
+  status
+}) {
   const map = {
     'Pending': 'bg-accent-blue text-white',
     'Arrived': 'bg-accent-yellow text-navy-900',
-    'In transit': 'bg-status-ok/90 text-white',
+    'In transit': 'bg-status-ok/90 text-white'
   };
-  return <span className={`rounded-full px-3 py-1 text-[12px] font-semibold ${map[status] || 'bg-white/15 text-white'}`}>{status}</span>;
+  return /*#__PURE__*/React.createElement("span", {
+    className: `rounded-full px-3 py-1 text-[12px] font-semibold ${map[status] || 'bg-white/15 text-white'}`
+  }, status);
 }
-
 function ActivitiesTable() {
-  return (
-    <div className="flex flex-col h-full rounded-3xl bg-[#f6f8fc] p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[20px] font-extrabold text-navy-900">Activities</h3>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 ring-1 ring-black/5 text-navy-900">
-            <I.search className="h-4 w-4 text-navy-700/60" />
-            <input placeholder="Search" className="w-24 bg-transparent text-[13px] outline-none placeholder:text-navy-700/40" />
-          </div>
-          <button className="grid h-9 w-9 place-items-center rounded-full bg-white ring-1 ring-black/5 text-navy-700"><I.filter className="h-4 w-4" /></button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-[150px_1fr_140px_120px_44px] gap-3 px-2 pb-2 text-[12px] font-semibold uppercase tracking-wide text-navy-700/55 border-b border-black/5">
-        <span>Cargo ID</span><span>Destination</span><span>Arrival date</span><span>Status</span><span></span>
-      </div>
-
-      <div className="flex-1 overflow-y-auto nice-scroll">
-        {ACTIVITIES.map((a) => (
-          <div key={a.id} className="grid grid-cols-[150px_1fr_140px_120px_44px] gap-3 items-center px-2 py-3 border-b border-black/5 hover:bg-accent-blue/5 transition-colors">
-            <div className="flex items-center gap-2">
-              <span className={`grid h-8 w-8 place-items-center rounded-lg ${a.mode==='air' ? 'bg-accent-yellow/20 text-accent-yellow' : a.mode==='ship' ? 'bg-accent-blue/15 text-accent-blue' : 'bg-navy-700/10 text-navy-700'}`}>
-                <ModeIcon mode={a.mode} className="h-4 w-4" />
-              </span>
-              <span className="text-[14px] font-bold text-navy-900">{a.id}</span>
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 text-[14px] text-navy-900">
-                <span className="font-semibold">{a.from}</span>
-                <span className="text-navy-700/50 text-[12px]">{a.dist}</span>
-                <span className="font-semibold">{a.to}</span>
-              </div>
-              <div className="mt-1.5 h-1.5 w-full rounded-full bg-navy-700/10 overflow-hidden">
-                <div className="h-full rounded-full bg-gradient-to-r from-accent-blue to-accent-cyan" style={{ width: `${a.progress}%` }}></div>
-              </div>
-            </div>
-            <div className="text-[14px] text-navy-900">{a.date}</div>
-            <div><StatusBadge status={a.status} /></div>
-            <button className="grid place-items-center text-navy-700/50 hover:text-navy-900 justify-self-end"><I.dots className="h-5 w-5" /></button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col h-full rounded-3xl bg-[#f6f8fc] p-5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-4"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "text-[20px] font-extrabold text-navy-900"
+  }, "Activities"), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 rounded-full bg-white px-3 py-1.5 ring-1 ring-black/5 text-navy-900"
+  }, /*#__PURE__*/React.createElement(I.search, {
+    className: "h-4 w-4 text-navy-700/60"
+  }), /*#__PURE__*/React.createElement("input", {
+    placeholder: "Search",
+    className: "w-24 bg-transparent text-[13px] outline-none placeholder:text-navy-700/40"
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "grid h-9 w-9 place-items-center rounded-full bg-white ring-1 ring-black/5 text-navy-700"
+  }, /*#__PURE__*/React.createElement(I.filter, {
+    className: "h-4 w-4"
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-[150px_1fr_140px_120px_44px] gap-3 px-2 pb-2 text-[12px] font-semibold uppercase tracking-wide text-navy-700/55 border-b border-black/5"
+  }, /*#__PURE__*/React.createElement("span", null, "Cargo ID"), /*#__PURE__*/React.createElement("span", null, "Destination"), /*#__PURE__*/React.createElement("span", null, "Arrival date"), /*#__PURE__*/React.createElement("span", null, "Status"), /*#__PURE__*/React.createElement("span", null)), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 overflow-y-auto nice-scroll"
+  }, ACTIVITIES.map(a => /*#__PURE__*/React.createElement("div", {
+    key: a.id,
+    className: "grid grid-cols-[150px_1fr_140px_120px_44px] gap-3 items-center px-2 py-3 border-b border-black/5 hover:bg-accent-blue/5 transition-colors"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: `grid h-8 w-8 place-items-center rounded-lg ${a.mode === 'air' ? 'bg-accent-yellow/20 text-accent-yellow' : a.mode === 'ship' ? 'bg-accent-blue/15 text-accent-blue' : 'bg-navy-700/10 text-navy-700'}`
+  }, /*#__PURE__*/React.createElement(ModeIcon, {
+    mode: a.mode,
+    className: "h-4 w-4"
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "text-[14px] font-bold text-navy-900"
+  }, a.id)), /*#__PURE__*/React.createElement("div", {
+    className: "min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 text-[14px] text-navy-900"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold"
+  }, a.from), /*#__PURE__*/React.createElement("span", {
+    className: "text-navy-700/50 text-[12px]"
+  }, a.dist), /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold"
+  }, a.to)), /*#__PURE__*/React.createElement("div", {
+    className: "mt-1.5 h-1.5 w-full rounded-full bg-navy-700/10 overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "h-full rounded-full bg-gradient-to-r from-accent-blue to-accent-cyan",
+    style: {
+      width: `${a.progress}%`
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "text-[14px] text-navy-900"
+  }, a.date), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(StatusBadge, {
+    status: a.status
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "grid place-items-center text-navy-700/50 hover:text-navy-900 justify-self-end"
+  }, /*#__PURE__*/React.createElement(I.dots, {
+    className: "h-5 w-5"
+  }))))));
 }
-
 function RiskCard() {
   const risk = 10;
-  return (
-    <div className="relative h-full overflow-hidden rounded-3xl p-5 text-white"
-         style={{ background: 'linear-gradient(150deg,#1b4ed8 0%,#1e40af 55%,#172554 100%)' }}>
-      <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
-      <div className="flex items-center justify-between">
-        <h3 className="text-[20px] font-extrabold">Risk of Cargo Loss</h3>
-        <span className="rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-semibold flex items-center gap-1">
-          <I.sun className="h-3.5 w-3.5 text-accent-yellow" /> 32°
-        </span>
-      </div>
-
-      <div className="mt-5 flex items-end gap-3">
-        <div>
-          <div className="text-[12px] text-white/70">Loss risk</div>
-          <div className="flex items-end gap-2">
-            <span className="text-[48px] font-extrabold leading-none">10%</span>
-            <span className="mb-2 inline-flex items-center gap-1 rounded-full bg-status-ok/25 px-2 py-0.5 text-[12px] font-semibold text-emerald-200">
-              <I.arrowDown className="h-3 w-3" /> low
-            </span>
-          </div>
-        </div>
-        <button className="ml-auto mb-1 rounded-xl bg-accent-yellow px-4 py-2 text-[12px] font-extrabold text-navy-900 hover:brightness-105 pill-hover">DETAILS</button>
-      </div>
-
-      <div className="mt-4">
-        <input type="range" className="risk w-full" style={{ '--p': `${risk}%` }} defaultValue={risk} min={0} max={100} readOnly />
-        <div className="mt-1 flex justify-between text-[10px] text-white/60"><span>Low</span><span>Moderate</span><span>High</span></div>
-      </div>
-
-      <div className="mt-4 flex items-center gap-3 rounded-2xl bg-white/10 p-3 backdrop-blur">
-        <div className="grid h-11 w-11 place-items-center rounded-full bg-accent-yellow/25 text-accent-yellow"><I.sun className="h-6 w-6" /></div>
-        <div>
-          <div className="text-[15px] font-bold">Sunny</div>
-          <div className="text-[12px] text-white/70">Minimal risk due to good weather</div>
-        </div>
-      </div>
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    className: "relative h-full overflow-hidden rounded-3xl p-5 text-white",
+    style: {
+      background: 'linear-gradient(150deg,#1b4ed8 0%,#1e40af 55%,#172554 100%)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "text-[20px] font-extrabold"
+  }, "Risk of Cargo Loss"), /*#__PURE__*/React.createElement("span", {
+    className: "rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-semibold flex items-center gap-1"
+  }, /*#__PURE__*/React.createElement(I.sun, {
+    className: "h-3.5 w-3.5 text-accent-yellow"
+  }), " 32\xB0")), /*#__PURE__*/React.createElement("div", {
+    className: "mt-5 flex items-end gap-3"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-[12px] text-white/70"
+  }, "Loss risk"), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-end gap-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[48px] font-extrabold leading-none"
+  }, "10%"), /*#__PURE__*/React.createElement("span", {
+    className: "mb-2 inline-flex items-center gap-1 rounded-full bg-status-ok/25 px-2 py-0.5 text-[12px] font-semibold text-emerald-200"
+  }, /*#__PURE__*/React.createElement(I.arrowDown, {
+    className: "h-3 w-3"
+  }), " low"))), /*#__PURE__*/React.createElement("button", {
+    className: "ml-auto mb-1 rounded-xl bg-accent-yellow px-4 py-2 text-[12px] font-extrabold text-navy-900 hover:brightness-105 pill-hover"
+  }, "DETAILS")), /*#__PURE__*/React.createElement("div", {
+    className: "mt-4"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    className: "risk w-full",
+    style: {
+      '--p': `${risk}%`
+    },
+    defaultValue: risk,
+    min: 0,
+    max: 100,
+    readOnly: true
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "mt-1 flex justify-between text-[10px] text-white/60"
+  }, /*#__PURE__*/React.createElement("span", null, "Low"), /*#__PURE__*/React.createElement("span", null, "Moderate"), /*#__PURE__*/React.createElement("span", null, "High"))), /*#__PURE__*/React.createElement("div", {
+    className: "mt-4 flex items-center gap-3 rounded-2xl bg-white/10 p-3 backdrop-blur"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid h-11 w-11 place-items-center rounded-full bg-accent-yellow/25 text-accent-yellow"
+  }, /*#__PURE__*/React.createElement(I.sun, {
+    className: "h-6 w-6"
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-[15px] font-bold"
+  }, "Sunny"), /*#__PURE__*/React.createElement("div", {
+    className: "text-[12px] text-white/70"
+  }, "Minimal risk due to good weather"))));
 }
-
-function BottomPanel({ open, onToggle }) {
-  return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-40 w-[min(1180px,calc(100vw-110px))] pointer-events-none">
-      {/* handle tab — always visible */}
-      <button
-        onClick={onToggle}
-        className="pointer-events-auto mx-auto mb-[-1px] flex items-center gap-2 rounded-t-2xl glass px-5 py-2 text-[12px] font-semibold text-white/80 hover:text-white pill-hover"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-      >
-        <span className="relative flex h-2 w-2"><span className="absolute inset-0 rounded-full bg-accent-cyan"></span></span>
-        Activities & Risk
-        <I.chevron className={`h-4 w-4 transition-transform duration-500 ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      {/* sliding panel */}
-      <div
-        className={`panel-slide pointer-events-auto origin-bottom ${open ? 'translate-y-0 opacity-100' : 'translate-y-[101%] opacity-0'}`}
-      >
-        <div className="glass rounded-b-3xl rounded-tr-3xl p-3 shadow-panel" style={{ height: '44vh', minHeight: 320 }}>
-          <div className="grid h-full grid-cols-1 md:grid-cols-[1.5fr_1fr] gap-3">
-            <ActivitiesTable />
-            <RiskCard />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+function BottomPanel({
+  open,
+  onToggle
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fixed bottom-0 left-1/2 -translate-x-1/2 z-40 w-[min(1180px,calc(100vw-110px))] pointer-events-none"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onToggle,
+    className: "pointer-events-auto mx-auto mb-[-1px] flex items-center gap-2 rounded-t-2xl glass px-5 py-2 text-[12px] font-semibold text-white/80 hover:text-white pill-hover",
+    style: {
+      borderBottom: '1px solid rgba(255,255,255,0.06)'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "relative flex h-2 w-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "absolute inset-0 rounded-full bg-accent-cyan"
+  })), "Activities & Risk", /*#__PURE__*/React.createElement(I.chevron, {
+    className: `h-4 w-4 transition-transform duration-500 ${open ? 'rotate-180' : ''}`
+  })), /*#__PURE__*/React.createElement("div", {
+    className: `panel-slide pointer-events-auto origin-bottom ${open ? 'translate-y-0 opacity-100' : 'translate-y-[101%] opacity-0'}`
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "glass rounded-b-3xl rounded-tr-3xl p-3 shadow-panel",
+    style: {
+      height: '44vh',
+      minHeight: 320
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid h-full grid-cols-1 md:grid-cols-[1.5fr_1fr] gap-3"
+  }, /*#__PURE__*/React.createElement(ActivitiesTable, null), /*#__PURE__*/React.createElement(RiskCard, null)))));
 }
 
 /* ───────────────────────── GLOBE (Three.js) ───────────────────────── */
 
-function Globe({ onReady, mode }) {
+function Globe({
+  onReady,
+  mode
+}) {
   const mountRef = useRef(null);
   const stateRef = useRef(null);
-
   useEffect(() => {
     const mount = mountRef.current;
     let renderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance'
+      });
     } catch (e) {
       mount.innerHTML = '<div style="color:#fff;padding:40px">WebGL not available</div>';
       return;
     }
-
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, mount.clientWidth / mount.clientHeight, 0.1, 1000);
+    function getViewportSize() {
+      return {
+        w: Math.max(1, mount.clientWidth || window.innerWidth || 1),
+        h: Math.max(1, mount.clientHeight || window.innerHeight || 1)
+      };
+    }
+    const initialSize = getViewportSize();
+    const camera = new THREE.PerspectiveCamera(45, initialSize.w / initialSize.h, 0.1, 1000);
     camera.position.set(0, 0, 6.2);
-
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(mount.clientWidth, mount.clientHeight);
+    renderer.setSize(initialSize.w, initialSize.h);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
     renderer.domElement.classList.add('grab');
@@ -662,13 +1081,18 @@ function Globe({ onReady, mode }) {
       const r = 60 + Math.random() * 80;
       const t = Math.random() * Math.PI * 2;
       const p = Math.acos(2 * Math.random() - 1);
-      sPos[i*3]   = r * Math.sin(p) * Math.cos(t);
-      sPos[i*3+1] = r * Math.sin(p) * Math.sin(t);
-      sPos[i*3+2] = r * Math.cos(p);
+      sPos[i * 3] = r * Math.sin(p) * Math.cos(t);
+      sPos[i * 3 + 1] = r * Math.sin(p) * Math.sin(t);
+      sPos[i * 3 + 2] = r * Math.cos(p);
     }
     starGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
     const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
-      color: 0xcfe6ff, size: 0.18, sizeAttenuation: true, transparent: true, opacity: 0.85, depthWrite: false
+      color: 0xcfe6ff,
+      size: 0.18,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false
     }));
     scene.add(stars);
 
@@ -683,20 +1107,28 @@ function Globe({ onReady, mode }) {
     scene.add(group);
     const R = 2;
     const sunDir = new THREE.Vector3(5, 2.5, 4).normalize();
-
     const manager = new THREE.LoadingManager();
     const texLoader = new THREE.TextureLoader(manager);
     const baseUrl = 'https://cdn.jsdelivr.net/npm/three-globe@2.31.0/example/img/';
-    const dayTex   = texLoader.load(baseUrl + 'earth-blue-marble.jpg');
+    const dayTex = texLoader.load(baseUrl + 'earth-blue-marble.jpg');
     const nightTex = texLoader.load(baseUrl + 'earth-night.jpg');
-    [dayTex, nightTex].forEach(t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; });
+    [dayTex, nightTex].forEach(t => {
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 8;
+    });
 
     /* Earth: custom day/night shader */
     const earthMat = new THREE.ShaderMaterial({
       uniforms: {
-        dayTex:   { value: dayTex },
-        nightTex: { value: nightTex },
-        uSun:     { value: sunDir.clone() },
+        dayTex: {
+          value: dayTex
+        },
+        nightTex: {
+          value: nightTex
+        },
+        uSun: {
+          value: sunDir.clone()
+        }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -725,15 +1157,18 @@ function Globe({ onReady, mode }) {
           float term = 1.0 - abs(d);
           col += vec3(0.18, 0.42, 0.7) * smoothstep(0.7, 1.0, term) * 0.5; // atmosphere rim near terminator
           gl_FragColor = vec4(col, 1.0);
-        }`,
+        }`
     });
-
     const earth = new THREE.Mesh(new THREE.SphereGeometry(R, 96, 96), earthMat);
     group.add(earth);
 
     /* ---- Atmosphere (fresnel glow shell) ---- */
     const atmoMat = new THREE.ShaderMaterial({
-      uniforms: { uColor: { value: new THREE.Color(0x3aa0ff) } },
+      uniforms: {
+        uColor: {
+          value: new THREE.Color(0x3aa0ff)
+        }
+      },
       vertexShader: `
         varying vec3 vN;
         void main(){
@@ -750,7 +1185,7 @@ function Globe({ onReady, mode }) {
       blending: THREE.AdditiveBlending,
       side: THREE.BackSide,
       transparent: true,
-      depthWrite: false,
+      depthWrite: false
     });
     const atmo = new THREE.Mesh(new THREE.SphereGeometry(R * 1.16, 64, 64), atmoMat);
     scene.add(atmo);
@@ -758,31 +1193,39 @@ function Globe({ onReady, mode }) {
     /* ---- Markers + labels ---- */
     const glowTex = makeGlowTexture();
     const markers = [];
-
     function addMarker(item, prominent, opts = {}) {
-      const { showLabel = prominent } = opts;
+      const {
+        showLabel = prominent
+      } = opts;
       const pos = latLngToVec3(item.lat, item.lng, R * 1.005);
       // glow
-      const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(item.color), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
-      glow.position.copy(pos); glow.scale.set(0.5, 0.5, 1);
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: glowTex,
+        color: new THREE.Color(item.color),
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      }));
+      glow.position.copy(pos);
+      glow.scale.set(0.5, 0.5, 1);
       group.add(glow);
       // core dot
-      const core = new THREE.Mesh(
-        new THREE.SphereGeometry(prominent ? 0.035 : 0.022, 16, 16),
-        new THREE.MeshBasicMaterial({ color: item.color })
-      );
-      core.position.copy(pos); group.add(core);
+      const core = new THREE.Mesh(new THREE.SphereGeometry(prominent ? 0.035 : 0.022, 16, 16), new THREE.MeshBasicMaterial({
+        color: item.color
+      }));
+      core.position.copy(pos);
+      group.add(core);
       // thin beam
       const beamH = prominent ? 0.22 : 0.12;
-      const beam = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.006, 0.006, beamH, 8),
-        new THREE.MeshBasicMaterial({ color: item.color, transparent: true, opacity: 0.6 })
-      );
-      beam.position.copy(pos.clone().multiplyScalar(1 + beamH/(2*R)));
-      beam.lookAt(new THREE.Vector3(0,0,0));
-      beam.rotateX(Math.PI/2);
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, beamH, 8), new THREE.MeshBasicMaterial({
+        color: item.color,
+        transparent: true,
+        opacity: 0.6
+      }));
+      beam.position.copy(pos.clone().multiplyScalar(1 + beamH / (2 * R)));
+      beam.lookAt(new THREE.Vector3(0, 0, 0));
+      beam.rotateX(Math.PI / 2);
       group.add(beam);
-
       let label = null;
       if (showLabel) {
         label = makeLabelSprite(item.code, {
@@ -792,16 +1235,25 @@ function Globe({ onReady, mode }) {
           fontSize: 18,
           padX: 10,
           dotR: 4,
-          scale: 0.0028,
+          scale: 0.0028
         });
         label.position.copy(pos.clone().multiplyScalar(1.09));
         group.add(label);
       }
-
-      markers.push({ glow, core, label, pos: pos.clone(), prominent });
+      markers.push({
+        glow,
+        core,
+        label,
+        pos: pos.clone(),
+        prominent
+      });
     }
-    HUBS.forEach(h => addMarker(h, true, { showLabel: true }));
-    VEHICLES.forEach(v => addMarker(v, false, { showLabel: false }));
+    HUBS.forEach(h => addMarker(h, true, {
+      showLabel: true
+    }));
+    VEHICLES.forEach(v => addMarker(v, false, {
+      showLabel: false
+    }));
 
     /* ---- Route arcs ---- */
     const arcs = [];
@@ -814,40 +1266,61 @@ function Globe({ onReady, mode }) {
       const tubeGeo = new THREE.TubeGeometry(curve, 60, r.primary ? 0.012 : 0.006, 8, false);
       const tubeMat = new THREE.MeshBasicMaterial({
         color: new THREE.Color(r.color),
-        transparent: true, opacity: r.primary ? 0.95 : 0.55,
-        blending: THREE.AdditiveBlending, depthWrite: false,
+        transparent: true,
+        opacity: r.primary ? 0.95 : 0.55,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
       });
       const tube = new THREE.Mesh(tubeGeo, tubeMat);
       group.add(tube);
       // moving particle
-      const head = new THREE.Mesh(
-        new THREE.SphereGeometry(r.primary ? 0.03 : 0.02, 12, 12),
-        new THREE.MeshBasicMaterial({ color: new THREE.Color(r.color) })
-      );
-      const headGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(r.color), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+      const head = new THREE.Mesh(new THREE.SphereGeometry(r.primary ? 0.03 : 0.02, 12, 12), new THREE.MeshBasicMaterial({
+        color: new THREE.Color(r.color)
+      }));
+      const headGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: glowTex,
+        color: new THREE.Color(r.color),
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      }));
       headGlow.scale.set(0.28, 0.28, 1);
-      group.add(head); group.add(headGlow);
-      arcs.push({ curve, head, headGlow, t: Math.random(), speed: 0.0028 + Math.random()*0.0016 });
+      group.add(head);
+      group.add(headGlow);
+      arcs.push({
+        curve,
+        head,
+        headGlow,
+        t: Math.random(),
+        speed: 0.0028 + Math.random() * 0.0016
+      });
     });
 
     /* ---- Interaction: drag rotation w/ inertia + damping ---- */
     const state = {
-      dragging: false, px: 0, py: 0,
-      velX: 0, velY: 0,
-      targetX: 0.42, targetY: 0.38,
-      rotX: 0.42, rotY: 0.38,
+      dragging: false,
+      px: 0,
+      py: 0,
+      velX: 0,
+      velY: 0,
+      targetX: 0.42,
+      targetY: 0.38,
+      rotX: 0.42,
+      rotY: 0.38,
       lastInteract: performance.now(),
       targetDist: 6.2,
-      curDist: 6.2,
+      curDist: 6.2
     };
     stateRef.current = state;
-
-    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-
+    function clamp(v, a, b) {
+      return Math.max(a, Math.min(b, v));
+    }
     function onDown(e) {
       state.dragging = true;
-      state.px = e.clientX; state.py = e.clientY;
-      state.velX = 0; state.velY = 0;
+      state.px = e.clientX;
+      state.py = e.clientY;
+      state.velX = 0;
+      state.velY = 0;
       state.lastInteract = performance.now();
       renderer.domElement.setPointerCapture?.(e.pointerId);
     }
@@ -855,7 +1328,8 @@ function Globe({ onReady, mode }) {
       if (!state.dragging) return;
       const dx = e.clientX - state.px;
       const dy = e.clientY - state.py;
-      state.px = e.clientX; state.py = e.clientY;
+      state.px = e.clientX;
+      state.py = e.clientY;
       state.targetY += dx * 0.005;
       state.targetX = clamp(state.targetX + dy * 0.005, -1.15, 1.15);
       state.velY = dx * 0.005;
@@ -864,7 +1338,9 @@ function Globe({ onReady, mode }) {
     }
     function onUp(e) {
       state.dragging = false;
-      try { renderer.domElement.releasePointerCapture?.(e.pointerId); } catch(_) {}
+      try {
+        renderer.domElement.releasePointerCapture?.(e.pointerId);
+      } catch (_) {}
     }
     function onWheel(e) {
       e.preventDefault();
@@ -875,30 +1351,59 @@ function Globe({ onReady, mode }) {
     dom.addEventListener('pointerdown', onDown);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
-    dom.addEventListener('wheel', onWheel, { passive: false });
+    dom.addEventListener('wheel', onWheel, {
+      passive: false
+    });
 
     /* ---- Expose controls ---- */
     const api = {
-      zoomIn:  () => { state.targetDist = clamp(state.targetDist - 0.6, 3.6, 9.5); state.lastInteract = performance.now(); },
-      zoomOut: () => { state.targetDist = clamp(state.targetDist + 0.6, 3.6, 9.5); state.lastInteract = performance.now(); },
-      reset:   () => { state.targetDist = 6.2; state.targetX = 0.42; state.targetY = 0.38; state.lastInteract = performance.now(); },
-      setMode: (m) => {
-        if (m === '2d') { state.targetX = 0.0; state.targetY = 0.38; state.targetDist = 7.6; }
-        else            { state.targetX = 0.42; state.targetY = 0.38; state.targetDist = 6.2; }
+      zoomIn: () => {
+        state.targetDist = clamp(state.targetDist - 0.6, 3.6, 9.5);
         state.lastInteract = performance.now();
       },
-      onZoom:  (cb) => { api._cb = cb; },
+      zoomOut: () => {
+        state.targetDist = clamp(state.targetDist + 0.6, 3.6, 9.5);
+        state.lastInteract = performance.now();
+      },
+      reset: () => {
+        state.targetDist = 6.2;
+        state.targetX = 0.42;
+        state.targetY = 0.38;
+        state.lastInteract = performance.now();
+      },
+      setMode: m => {
+        if (m === '2d') {
+          state.targetX = 0.0;
+          state.targetY = 0.38;
+          state.targetDist = 7.6;
+        } else {
+          state.targetX = 0.42;
+          state.targetY = 0.38;
+          state.targetDist = 6.2;
+        }
+        state.lastInteract = performance.now();
+      },
+      onZoom: cb => {
+        api._cb = cb;
+      }
     };
     state.__api = api;
     if (onReady) onReady(api);
 
     /* ---- Resize ---- */
     function onResize() {
-      const w = mount.clientWidth, h = mount.clientHeight;
-      camera.aspect = w / h; camera.updateProjectionMatrix();
+      const {
+        w,
+        h
+      } = getViewportSize();
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     }
     window.addEventListener('resize', onResize);
+    const resizeObserver = new ResizeObserver(onResize);
+    resizeObserver.observe(mount);
+    requestAnimationFrame(onResize);
 
     /* ---- Animation loop ---- */
     let raf;
@@ -906,12 +1411,12 @@ function Globe({ onReady, mode }) {
       raf = requestAnimationFrame(tick);
       const now = performance.now();
       const idle = now - state.lastInteract;
-
       if (!state.dragging) {
         // inertia
         state.targetY += state.velY;
         state.targetX = clamp(state.targetX + state.velX, -1.15, 1.15);
-        state.velX *= 0.93; state.velY *= 0.93;
+        state.velX *= 0.93;
+        state.velY *= 0.93;
         // gentle auto-spin when idle
         if (idle > 2500 && Math.abs(state.velY) < 0.0005) state.targetY += 0.0009;
       }
@@ -942,10 +1447,9 @@ function Globe({ onReady, mode }) {
       // marker pulse
       const pulse = 0.5 + 0.5 * Math.sin(now * 0.003);
       for (const m of markers) {
-        const s = m.prominent ? (0.42 + pulse * 0.18) : (0.30 + pulse * 0.12);
+        const s = m.prominent ? 0.42 + pulse * 0.18 : 0.30 + pulse * 0.12;
         m.glow.scale.set(s, s, 1);
       }
-
       renderer.render(scene, camera);
     }
     tick();
@@ -965,6 +1469,7 @@ function Globe({ onReady, mode }) {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
+      resizeObserver.disconnect();
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       dom.removeEventListener('pointerdown', onDown);
@@ -978,8 +1483,10 @@ function Globe({ onReady, mode }) {
   useEffect(() => {
     stateRef.current?.__api?.setMode(mode);
   }, [mode]);
-
-  return <div ref={mountRef} className="absolute inset-0 z-0" />;
+  return /*#__PURE__*/React.createElement("div", {
+    ref: mountRef,
+    className: "absolute inset-0 z-0"
+  });
 }
 
 /* ───────────────────────── APP ───────────────────────── */
@@ -988,21 +1495,25 @@ function App() {
   const [controls, setControls] = useState(null);
   const [mode, setMode] = useState('3d');
   const [panelOpen, setPanelOpen] = useState(false);
-  return (
-    <div className="relative h-screen w-screen overflow-hidden bg-grid bg-vignette text-white select-none">
-      <Globe onReady={setControls} mode={mode} />
-      <Sidebar />
-      <TopBar />
-      <StatsPanel />
-      <ZoomControls controls={controls} dimmed={panelOpen} />
-      <ViewToggle mode={mode} setMode={setMode} dimmed={panelOpen} />
-      <BottomPanel open={panelOpen} onToggle={() => setPanelOpen(o => !o)} />
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    className: "relative h-screen w-screen overflow-hidden bg-grid bg-vignette text-white select-none"
+  }, /*#__PURE__*/React.createElement(Globe, {
+    onReady: setControls,
+    mode: mode
+  }), /*#__PURE__*/React.createElement(Sidebar, null), /*#__PURE__*/React.createElement(TopBar, null), /*#__PURE__*/React.createElement(StatsPanel, null), /*#__PURE__*/React.createElement(ZoomControls, {
+    controls: controls,
+    dimmed: panelOpen
+  }), /*#__PURE__*/React.createElement(ViewToggle, {
+    mode: mode,
+    setMode: setMode,
+    dimmed: panelOpen
+  }), /*#__PURE__*/React.createElement(BottomPanel, {
+    open: panelOpen,
+    onToggle: () => setPanelOpen(o => !o)
+  }));
 }
-
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+root.render( /*#__PURE__*/React.createElement(App, null));
 </script>
 </body>
 </html>
