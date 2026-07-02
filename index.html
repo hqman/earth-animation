@@ -25,6 +25,13 @@
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script>
+  // Force classic JSX runtime (React.createElement) so Babel doesn't inject
+  // an ES `import` from "react/jsx-runtime", which breaks the UMD/global setup.
+  Babel.registerPreset("react-classic", {
+    presets: [[Babel.availablePresets["react"], { runtime: "classic" }]],
+  });
+</script>
 
 <style>
   html, body { height: 100%; overflow: hidden; background: #070b22; }
@@ -76,7 +83,7 @@
 <body class="bg-navy font-sans">
 <div id="root"></div>
 
-<script type="text/babel" data-presets="react">
+<script type="text/babel" data-presets="react-classic">
 const { useState, useEffect, useRef, useCallback } = React;
 
 /* ============================== Icons ============================== */
@@ -165,10 +172,10 @@ function useGlobe(mountRef, markerRefs, coordRef, apiRef) {
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, W / H, 0.1, 100);
-    camera.position.set(0, 0, 5.4);                 // intro: fly in
+    camera.position.set(0, 0, 7.6);                 // intro: fly in
 
     const globe = new THREE.Group();
-    globe.position.y = -0.18;
+    globe.position.y = 0;
     globe.scale.setScalar(1.34);
     scene.add(globe);
 
@@ -316,7 +323,7 @@ function useGlobe(mountRef, markerRefs, coordRef, apiRef) {
     const st = {
       rotY: -0.18, rotX: 0.16, tRotY: -0.18, tRotX: 0.16,
       velY: 0, dragging: false, lastX: 0, lastY: 0, lastInteract: 0,
-      tZoom: 3.05,
+      tZoom: 5.9,
     };
     globe.rotation.set(st.rotX, st.rotY, 0);
 
@@ -352,7 +359,7 @@ function useGlobe(mountRef, markerRefs, coordRef, apiRef) {
 
     apiRef.current = {
       zoom: (d) => { st.tZoom = THREE.MathUtils.clamp(st.tZoom + d, 2.05, 22); st.lastInteract = performance.now(); },
-      reset: () => { st.tZoom = 3.05; st.tRotY = -0.18; st.tRotX = 0.16; st.lastInteract = performance.now(); },
+      reset: () => { st.tZoom = 5.9; st.tRotY = -0.18; st.tRotX = 0.16; st.lastInteract = performance.now(); },
     };
 
     /* --- Render loop --- */
